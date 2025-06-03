@@ -15,15 +15,12 @@
       <p class="text-sm">Universidad Sergio Arboleda</p>
     </header>
 
-    <!-- ✅ NAV CON ETIQUETA DE ROL SIMPLE -->
     <nav class="flex justify-between items-center bg-blue-700 text-white p-2">
       <div class="space-x-4">
         <a href="foro.html" class="hover:underline">Foro</a>
         <a href="publicaciones.html" class="hover:underline">Publicaciones</a>
         <a href="tickets.html" class="underline font-semibold">Tickets</a>
       </div>
-
-      <!-- ✅ ETIQUETA SIMPLE DE ROL -->
       <div class="flex items-center space-x-3">
         <span id="rol-usuario" class="text-white text-sm"></span>
         <button
@@ -38,24 +35,223 @@
     <div class="foro-bg">
       <main class="p-6">
         <section id="tickets">
-          <!-- Header de la sección -->
+          <!-- Header dinámico según el rol -->
           <div class="mb-6">
-            <h2 class="text-2xl font-bold text-gray-800 mb-2">
+            <h2
+              id="tickets-title"
+              class="text-2xl font-bold text-gray-800 mb-2"
+            >
               🎫 Sistema de Tickets
             </h2>
-            <p class="text-gray-600">
-              Envía solicitudes directas a la secretaría académica
+            <p id="tickets-description" class="text-gray-600">
+              Gestión de solicitudes estudiantiles
             </p>
           </div>
+
+          <!-- 🎓 PANEL PARA ESTUDIANTES - Crear tickets -->
+          <section id="estudiante-panel" class="hidden mb-8">
+            <div
+              class="bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-lg shadow-lg"
+            >
+              <div class="p-6">
+                <div class="flex items-center mb-4">
+                  <span class="text-3xl mr-3">🎓</span>
+                  <div>
+                    <h2 class="text-2xl font-bold">Panel de Estudiante</h2>
+                    <p class="text-blue-100">
+                      Envía solicitudes a la secretaría académica
+                    </p>
+                  </div>
+                </div>
+
+                <div class="bg-white rounded-lg p-6 text-gray-800">
+                  <h3 class="text-xl font-semibold mb-4">
+                    ✉️ Crear Nueva Solicitud
+                  </h3>
+
+                  <form id="form-ticket" class="space-y-4">
+                    <div>
+                      <label
+                        for="titulo"
+                        class="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        Título de la solicitud (opcional)
+                      </label>
+                      <input
+                        id="titulo"
+                        type="text"
+                        placeholder="Ej: Solicitud de certificado académico"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                      <p class="mt-1 text-sm text-gray-500">
+                        Si no especificas un título, se creará como "Solicitud
+                        general"
+                      </p>
+                    </div>
+
+                    <div>
+                      <label
+                        for="mensaje"
+                        class="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        Descripción detallada
+                        <span class="text-red-500">*</span>
+                      </label>
+                      <textarea
+                        id="mensaje"
+                        placeholder="Describe tu solicitud con el mayor detalle posible..."
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        rows="5"
+                        required
+                      ></textarea>
+                    </div>
+
+                    <button
+                      type="submit"
+                      class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center"
+                    >
+                      <span class="mr-2">📤</span>
+                      Enviar Solicitud
+                    </button>
+
+                    <div
+                      id="form-mensaje"
+                      class="text-center text-sm mt-4"
+                    ></div>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 📋 PANEL PARA SECRETARIAS - Solo ver tickets -->
+          <section id="secretaria-panel" class="hidden mb-8">
+            <div
+              class="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg shadow-lg"
+            >
+              <div class="p-6">
+                <div class="flex items-center mb-4">
+                  <span class="text-3xl mr-3">📋</span>
+                  <div>
+                    <h2 class="text-2xl font-bold">Panel de Secretaría</h2>
+                    <p class="text-purple-100">
+                      Gestión de solicitudes estudiantiles
+                    </p>
+                  </div>
+                </div>
+
+                <div class="bg-white rounded-lg p-6 text-gray-800">
+                  <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold">
+                      📬 Solicitudes Recibidas
+                    </h3>
+                    <div class="flex space-x-2">
+                      <button
+                        onclick="filtrarTickets('todos')"
+                        class="px-3 py-1 bg-gray-200 rounded text-sm hover:bg-gray-300"
+                        id="btn-todos"
+                      >
+                        Todos
+                      </button>
+                      <button
+                        onclick="filtrarTickets('abierto')"
+                        class="px-3 py-1 bg-green-200 rounded text-sm hover:bg-green-300"
+                        id="btn-abiertos"
+                      >
+                        Abiertos
+                      </button>
+                      <button
+                        onclick="filtrarTickets('en_proceso')"
+                        class="px-3 py-1 bg-yellow-200 rounded text-sm hover:bg-yellow-300"
+                        id="btn-proceso"
+                      >
+                        En Proceso
+                      </button>
+                      <button
+                        onclick="filtrarTickets('cerrado')"
+                        class="px-3 py-1 bg-red-200 rounded text-sm hover:bg-red-300"
+                        id="btn-cerrados"
+                      >
+                        Cerrados
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="text-sm text-gray-600 mb-4">
+                    <p>
+                      <strong>💡 Instrucciones:</strong> Haz clic en cualquier
+                      ticket para ver detalles y responder.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 👑 PANEL PARA ADMINS - Control total -->
+          <section id="admin-tickets-panel" class="hidden mb-8">
+            <div
+              class="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg shadow-lg"
+            >
+              <div class="p-6">
+                <div class="flex items-center mb-4">
+                  <span class="text-3xl mr-3">👑</span>
+                  <div>
+                    <h2 class="text-2xl font-bold">Panel de Administración</h2>
+                    <p class="text-purple-100">
+                      Control total del sistema de tickets
+                    </p>
+                  </div>
+                </div>
+
+                <div class="bg-white rounded-lg p-6 text-gray-800">
+                  <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-green-50 p-4 rounded-lg text-center">
+                      <div
+                        class="text-2xl font-bold text-green-600"
+                        id="count-abiertos"
+                      >
+                        0
+                      </div>
+                      <div class="text-sm text-green-800">Abiertos</div>
+                    </div>
+                    <div class="bg-yellow-50 p-4 rounded-lg text-center">
+                      <div
+                        class="text-2xl font-bold text-yellow-600"
+                        id="count-proceso"
+                      >
+                        0
+                      </div>
+                      <div class="text-sm text-yellow-800">En Proceso</div>
+                    </div>
+                    <div class="bg-red-50 p-4 rounded-lg text-center">
+                      <div
+                        class="text-2xl font-bold text-red-600"
+                        id="count-cerrados"
+                      >
+                        0
+                      </div>
+                      <div class="text-sm text-red-800">Cerrados</div>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg text-center">
+                      <div
+                        class="text-2xl font-bold text-blue-600"
+                        id="count-total"
+                      >
+                        0
+                      </div>
+                      <div class="text-sm text-blue-800">Total</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
 
           <!-- Información del sistema -->
           <div
             class="mb-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500"
           >
-            <p class="text-blue-800 mb-3">
-              <strong>💡 Sistema de Tickets:</strong> Utiliza este sistema para
-              solicitudes específicas que requieren atención personalizada.
-            </p>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div class="flex items-center">
                 <span
@@ -78,64 +274,14 @@
             </div>
           </div>
 
-          <!-- Formulario para crear ticket -->
-          <div class="mb-8 bg-white p-6 rounded-lg shadow-md">
-            <h3 class="text-xl font-semibold text-gray-800 mb-4">
-              ✉️ Crear Nuevo Ticket
-            </h3>
-
-            <form id="form-ticket" class="space-y-4">
-              <div>
-                <label
-                  for="titulo"
-                  class="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Título de la solicitud (opcional)
-                </label>
-                <input
-                  id="titulo"
-                  type="text"
-                  placeholder="Ej: Solicitud de certificado académico"
-                  class="input"
-                />
-                <p class="mt-1 text-sm text-gray-500">
-                  Si no especificas un título, se creará como "Solicitud
-                  general"
-                </p>
-              </div>
-
-              <div>
-                <label
-                  for="mensaje"
-                  class="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Descripción detallada <span class="text-red-500">*</span>
-                </label>
-                <textarea
-                  id="mensaje"
-                  placeholder="Describe tu solicitud con el mayor detalle posible. Incluye información relevante como fechas, documentos necesarios, etc."
-                  class="input"
-                  rows="5"
-                  required
-                ></textarea>
-                <p class="mt-1 text-sm text-gray-500">
-                  Mientras más detallada sea tu solicitud, más rápida será la
-                  respuesta
-                </p>
-              </div>
-
-              <button type="submit" class="btn-green">📤 Enviar Ticket</button>
-            </form>
-
-            <!-- Mensaje de estado del formulario -->
-            <div id="form-mensaje" class="mt-4 text-center text-sm"></div>
-          </div>
-
           <!-- Lista de tickets -->
           <div class="bg-white p-6 rounded-lg shadow-md">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="text-xl font-semibold text-gray-800">
-                📋 Mis Tickets
+              <h3
+                id="tickets-list-title"
+                class="text-xl font-semibold text-gray-800"
+              >
+                📋 Tickets
               </h3>
               <button
                 onclick="cargarTickets()"
@@ -146,105 +292,414 @@
               </button>
             </div>
 
-            <!-- Indicador de carga -->
             <div id="loading-tickets" class="text-center py-8">
               <div
                 class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"
               ></div>
-              <p class="mt-2 text-gray-600">Cargando tus tickets...</p>
+              <p class="mt-2 text-gray-600">Cargando tickets...</p>
             </div>
 
-            <!-- Lista de tickets -->
             <div id="ticket-lista" class="space-y-4">
               <!-- Los tickets se cargan aquí dinámicamente -->
             </div>
-
-            <!-- Mensaje cuando no hay tickets -->
-            <div id="no-tickets" class="hidden text-center py-12">
-              <div class="text-6xl mb-4">📪</div>
-              <h3 class="text-xl font-semibold text-gray-600 mb-2">
-                No tienes tickets creados
-              </h3>
-              <p class="text-gray-500">
-                Crea tu primer ticket usando el formulario de arriba.
-              </p>
-            </div>
-
-            <!-- Mensaje de error -->
-            <div id="error-tickets" class="hidden text-center py-12">
-              <div class="text-6xl mb-4">⚠️</div>
-              <h3 class="text-xl font-semibold text-red-600 mb-2">
-                Error al cargar tickets
-              </h3>
-              <p class="text-gray-500 mb-4">
-                Hubo un problema al conectar con el servidor.
-              </p>
-              <button onclick="cargarTickets()" class="btn-blue">
-                🔄 Intentar nuevamente
-              </button>
-            </div>
           </div>
         </section>
-
-        <!-- Información adicional -->
-        <aside class="mt-8 p-4 bg-gray-50 rounded-lg">
-          <h3 class="font-semibold text-gray-800 mb-3">
-            🤔 ¿Cuándo usar el sistema de tickets?
-          </h3>
-          <div class="text-sm text-gray-600 space-y-2">
-            <div class="flex items-start">
-              <span class="text-green-600 mr-2">✅</span>
-              <span>Solicitudes de certificados y documentos oficiales</span>
-            </div>
-            <div class="flex items-start">
-              <span class="text-green-600 mr-2">✅</span>
-              <span>Problemas con matrículas o pagos</span>
-            </div>
-            <div class="flex items-start">
-              <span class="text-green-600 mr-2">✅</span>
-              <span>Consultas sobre horarios y aulas</span>
-            </div>
-            <div class="flex items-start">
-              <span class="text-green-600 mr-2">✅</span>
-              <span>Solicitudes que requieren seguimiento personalizado</span>
-            </div>
-          </div>
-
-          <div class="mt-4 pt-4 border-t border-gray-200">
-            <p class="text-sm text-gray-600">
-              <strong>💬 Para dudas generales:</strong> Usa el
-              <a href="foro.html" class="text-blue-600 underline">Foro</a> donde
-              otros estudiantes pueden ayudarte.
-            </p>
-          </div>
-        </aside>
       </main>
     </div>
 
-    <!-- Template para tickets (referencia para JS) -->
-    <template id="ticket-template">
+    <!-- Modal para ver/responder ticket -->
+    <div
+      id="ticket-modal"
+      class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
+    >
       <div
-        class="ticket bg-white p-4 rounded-lg border-l-4 border-gray-300 shadow-sm"
+        class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto"
       >
-        <!-- Header del ticket -->
-        <div class="flex justify-between items-start mb-3">
-          <h4 class="titulo font-semibold text-lg text-gray-800"></h4>
-          <span class="estado px-2 py-1 rounded text-xs font-medium"></span>
-        </div>
+        <div class="p-6">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-xl font-bold text-gray-800">
+              📄 Detalles del Ticket
+            </h3>
+            <button
+              onclick="cerrarModal()"
+              class="text-gray-500 hover:text-gray-700 text-2xl"
+            >
+              ×
+            </button>
+          </div>
 
-        <!-- Contenido -->
-        <p class="mensaje text-gray-700 mb-3 leading-relaxed"></p>
+          <div id="ticket-content">
+            <!-- Contenido del ticket se genera aquí -->
+          </div>
 
-        <!-- Metadata -->
-        <div class="meta text-sm text-gray-500 border-t pt-2">
-          <span class="fecha"></span>
+          <!-- Sección para responder (solo secretarias y admins) -->
+          <div id="respuesta-section" class="hidden mt-6 border-t pt-4">
+            <h4 class="font-semibold mb-3">💬 Responder al Ticket</h4>
+            <form id="form-respuesta">
+              <textarea
+                id="respuesta-texto"
+                placeholder="Escribe tu respuesta..."
+                class="w-full p-3 border border-gray-300 rounded-lg mb-3"
+                rows="4"
+                required
+              ></textarea>
+
+              <div class="flex justify-between items-center">
+                <select
+                  id="nuevo-estado"
+                  class="border border-gray-300 rounded px-3 py-2"
+                >
+                  <option value="en_proceso">En Proceso</option>
+                  <option value="cerrado">Cerrado/Resuelto</option>
+                </select>
+
+                <button
+                  type="submit"
+                  class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
+                >
+                  📤 Enviar Respuesta
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
-    </template>
+    </div>
 
-    <!-- ✅ SCRIPTS CON ROL SIMPLE -->
+    <!-- Scripts -->
     <script src="js/api-client.js"></script>
     <script src="js/simple-role.js"></script>
-    <script src="js/tickets.js"></script>
+
+    <script>
+      let currentFilter = "todos";
+      let allTickets = [];
+      let currentTicketId = null;
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        console.log("🚀 Iniciando sistema de tickets...");
+
+        if (!apiClient.sessionId) {
+          window.location.href = "index.html";
+          return;
+        }
+
+        await verificarRolYMostrarPanel();
+        configurarEventListeners();
+        await cargarTickets();
+      });
+
+      async function verificarRolYMostrarPanel() {
+        try {
+          const user = apiClient.getCurrentUser();
+          console.log("👤 Usuario actual:", user);
+
+          if (user && user.rol === "estudiante") {
+            mostrarPanelEstudiante();
+          } else if (user && user.rol === "secretaria") {
+            mostrarPanelSecretaria();
+          } else if (user && user.rol === "admin") {
+            mostrarPanelAdmin();
+          } else {
+            console.error("❌ Rol no reconocido:", user?.rol);
+          }
+        } catch (error) {
+          console.error("❌ Error verificando rol:", error);
+        }
+      }
+
+      function mostrarPanelEstudiante() {
+        document.getElementById("estudiante-panel").classList.remove("hidden");
+        document.getElementById("tickets-title").textContent =
+          "🎫 Mis Solicitudes";
+        document.getElementById("tickets-description").textContent =
+          "Envía solicitudes a la secretaría académica";
+        document.getElementById("tickets-list-title").textContent =
+          "📋 Mis Tickets";
+        console.log("✅ Panel de estudiante mostrado");
+      }
+
+      function mostrarPanelSecretaria() {
+        document.getElementById("secretaria-panel").classList.remove("hidden");
+        document.getElementById("tickets-title").textContent =
+          "📬 Solicitudes Estudiantiles";
+        document.getElementById("tickets-description").textContent =
+          "Gestiona las solicitudes de los estudiantes";
+        document.getElementById("tickets-list-title").textContent =
+          "📋 Tickets Recibidos";
+        console.log("✅ Panel de secretaria mostrado");
+      }
+
+      function mostrarPanelAdmin() {
+        document
+          .getElementById("admin-tickets-panel")
+          .classList.remove("hidden");
+        document.getElementById("tickets-title").textContent =
+          "👑 Administración de Tickets";
+        document.getElementById("tickets-description").textContent =
+          "Control total del sistema de solicitudes";
+        document.getElementById("tickets-list-title").textContent =
+          "📋 Todos los Tickets";
+        console.log("✅ Panel de admin mostrado");
+      }
+
+      function configurarEventListeners() {
+        const formTicket = document.getElementById("form-ticket");
+        if (formTicket) {
+          formTicket.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            await crearTicket();
+          });
+        }
+
+        const formRespuesta = document.getElementById("form-respuesta");
+        if (formRespuesta) {
+          formRespuesta.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            await responderTicket();
+          });
+        }
+      }
+
+      async function crearTicket() {
+        const titulo = document.getElementById("titulo").value.trim() || null;
+        const mensaje = document.getElementById("mensaje").value.trim();
+
+        if (!mensaje) {
+          mostrarMensajeForm("❌ El mensaje es requerido", "error");
+          return;
+        }
+
+        try {
+          mostrarMensajeForm("🔄 Enviando solicitud...", "info");
+          await apiClient.createTicket({ titulo, mensaje });
+
+          mostrarMensajeForm("✅ Solicitud enviada exitosamente", "success");
+          document.getElementById("titulo").value = "";
+          document.getElementById("mensaje").value = "";
+
+          await cargarTickets();
+        } catch (error) {
+          mostrarMensajeForm(`❌ Error: ${error.message}`, "error");
+        }
+      }
+
+      async function cargarTickets() {
+        const loadingElement = document.getElementById("loading-tickets");
+        const listaElement = document.getElementById("ticket-lista");
+
+        try {
+          if (loadingElement) loadingElement.style.display = "block";
+          if (listaElement) listaElement.innerHTML = "";
+
+          const tickets = await apiClient.getTickets();
+          allTickets = tickets;
+          console.log(`✅ ${tickets.length} tickets cargados`);
+
+          if (loadingElement) loadingElement.style.display = "none";
+
+          actualizarContadores(tickets);
+          mostrarTickets(tickets);
+        } catch (error) {
+          console.error("❌ Error cargando tickets:", error);
+          if (loadingElement) loadingElement.style.display = "none";
+          if (listaElement) {
+            listaElement.innerHTML = `<div class="text-center text-red-500 py-8">Error: ${error.message}</div>`;
+          }
+        }
+      }
+
+      function mostrarTickets(tickets) {
+        const listaElement = document.getElementById("ticket-lista");
+
+        if (tickets.length === 0) {
+          listaElement.innerHTML =
+            '<div class="text-center text-gray-500 py-8">No hay tickets</div>';
+          return;
+        }
+
+        listaElement.innerHTML = "";
+
+        tickets.forEach((ticket) => {
+          const item = document.createElement("div");
+          item.className =
+            "bg-white p-4 rounded border-l-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer";
+
+          const estadoColors = {
+            abierto: "border-green-500 bg-green-50",
+            en_proceso: "border-yellow-500 bg-yellow-50",
+            cerrado: "border-red-500 bg-red-50",
+          };
+
+          item.className +=
+            " " + (estadoColors[ticket.estado] || "border-gray-500");
+
+          const fecha = new Date(ticket.fecha_creacion).toLocaleDateString(
+            "es-ES"
+          );
+
+          item.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="font-semibold text-lg">${
+                          ticket.titulo || "Solicitud General"
+                        }</h4>
+                        <span class="text-xs px-2 py-1 rounded-full bg-gray-200">
+                            ${ticket.estado.toUpperCase().replace("_", " ")}
+                        </span>
+                    </div>
+                    <p class="text-gray-700 mb-2 line-clamp-2">${
+                      ticket.mensaje
+                    }</p>
+                    <div class="text-sm text-gray-500">
+                        <span>👤 ${
+                          ticket.usuario_nombre || ticket.nombre
+                        }</span>
+                        <span class="float-right">📅 ${fecha}</span>
+                    </div>
+                `;
+
+          item.onclick = () => abrirModalTicket(ticket);
+          listaElement.appendChild(item);
+        });
+      }
+
+      function filtrarTickets(estado) {
+        currentFilter = estado;
+
+        // Actualizar botones activos
+        document.querySelectorAll('[id^="btn-"]').forEach((btn) => {
+          btn.classList.remove("bg-blue-500", "text-white");
+          btn.classList.add("bg-gray-200");
+        });
+
+        document
+          .getElementById(`btn-${estado === "todos" ? "todos" : estado}`)
+          .classList.add("bg-blue-500", "text-white");
+
+        let ticketsFiltrados = allTickets;
+        if (estado !== "todos") {
+          ticketsFiltrados = allTickets.filter(
+            (ticket) => ticket.estado === estado
+          );
+        }
+
+        mostrarTickets(ticketsFiltrados);
+      }
+
+      function actualizarContadores(tickets) {
+        const user = apiClient.getCurrentUser();
+        if (user?.rol !== "admin") return;
+
+        const contadores = {
+          abierto: tickets.filter((t) => t.estado === "abierto").length,
+          en_proceso: tickets.filter((t) => t.estado === "en_proceso").length,
+          cerrado: tickets.filter((t) => t.estado === "cerrado").length,
+          total: tickets.length,
+        };
+
+        document.getElementById("count-abiertos").textContent =
+          contadores.abierto;
+        document.getElementById("count-proceso").textContent =
+          contadores.en_proceso;
+        document.getElementById("count-cerrados").textContent =
+          contadores.cerrado;
+        document.getElementById("count-total").textContent = contadores.total;
+      }
+
+      function abrirModalTicket(ticket) {
+        currentTicketId = ticket.id;
+        const modal = document.getElementById("ticket-modal");
+        const content = document.getElementById("ticket-content");
+        const respuestaSection = document.getElementById("respuesta-section");
+
+        const fecha = new Date(ticket.fecha_creacion).toLocaleDateString(
+          "es-ES"
+        );
+
+        content.innerHTML = `
+                <div class="border-l-4 border-blue-500 bg-blue-50 p-4 mb-4">
+                    <h4 class="font-bold text-lg mb-2">${
+                      ticket.titulo || "Solicitud General"
+                    }</h4>
+                    <p class="text-gray-700 mb-3">${ticket.mensaje}</p>
+                    <div class="text-sm text-gray-600">
+                        <span>👤 <strong>Solicitante:</strong> ${
+                          ticket.usuario_nombre || ticket.nombre
+                        }</span><br>
+                        <span>📅 <strong>Fecha:</strong> ${fecha}</span><br>
+                        <span>📊 <strong>Estado:</strong> 
+                            <span class="px-2 py-1 rounded text-xs bg-gray-200">
+                                ${ticket.estado.toUpperCase().replace("_", " ")}
+                            </span>
+                        </span>
+                    </div>
+                </div>
+            `;
+
+        const user = apiClient.getCurrentUser();
+        if (user && ["admin", "secretaria"].includes(user.rol)) {
+          respuestaSection.classList.remove("hidden");
+        }
+
+        modal.classList.remove("hidden");
+      }
+
+      function cerrarModal() {
+        document.getElementById("ticket-modal").classList.add("hidden");
+        currentTicketId = null;
+      }
+
+      async function responderTicket() {
+        if (!currentTicketId) return;
+
+        const respuesta = document
+          .getElementById("respuesta-texto")
+          .value.trim();
+        const nuevoEstado = document.getElementById("nuevo-estado").value;
+
+        if (!respuesta) {
+          alert("❌ La respuesta es requerida");
+          return;
+        }
+
+        try {
+          await apiClient.respondTicket(
+            currentTicketId,
+            respuesta,
+            nuevoEstado
+          );
+          alert("✅ Respuesta enviada exitosamente");
+
+          cerrarModal();
+          await cargarTickets();
+        } catch (error) {
+          alert(`❌ Error: ${error.message}`);
+        }
+      }
+
+      function mostrarMensajeForm(texto, tipo) {
+        const mensaje = document.getElementById("form-mensaje");
+        if (!mensaje) return;
+
+        mensaje.textContent = texto;
+        mensaje.className = "text-center text-sm mt-4";
+
+        if (tipo === "success") mensaje.classList.add("text-green-600");
+        else if (tipo === "error") mensaje.classList.add("text-red-600");
+        else if (tipo === "info") mensaje.classList.add("text-blue-600");
+
+        if (tipo === "success") {
+          setTimeout(() => (mensaje.textContent = ""), 3000);
+        }
+      }
+
+      function cerrarSesion() {
+        apiClient.logout();
+      }
+
+      // Cerrar modal con Escape
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") cerrarModal();
+      });
+    </script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-// js/api-client.js - Cliente para conectar con la API
+// js/api-client.js - Cliente completo para conectar con la API
 
 class ApiClient {
   constructor() {
@@ -27,6 +27,11 @@ class ApiClient {
       const data = await response.json();
 
       if (!response.ok) {
+        // Si es error 401, cerrar sesión automáticamente
+        if (response.status === 401) {
+          this.logout();
+          throw new Error("Sesión expirada. Inicia sesión nuevamente.");
+        }
         throw new Error(data.error || "Error en la petición");
       }
 
@@ -70,10 +75,7 @@ class ApiClient {
     window.location.href = "index.html";
   }
 
-  getCurrentUser() {
-    return JSON.parse(localStorage.getItem("user") || "null");
-  }
-
+  // ✅ FUNCIÓN CORREGIDA - YA NO ESTÁ DUPLICADA
   getCurrentUser() {
     return JSON.parse(localStorage.getItem("user") || "null");
   }
@@ -87,7 +89,10 @@ class ApiClient {
     } catch (error) {
       console.error("Error obteniendo info del usuario:", error);
       // Si hay error de autenticación, cerrar sesión
-      if (error.message.includes("401") || error.message.includes("inválida")) {
+      if (
+        error.message.includes("401") ||
+        error.message.includes("Sesión expirada")
+      ) {
         this.logout();
       }
       throw error;
@@ -143,7 +148,7 @@ class ApiClient {
   }
 
   // ==================
-  // MÉTODOS DE TICKETS
+  // MÉTODOS DE TICKETS (ACTUALIZADOS)
   // ==================
 
   async getTickets() {
@@ -157,12 +162,186 @@ class ApiClient {
     });
   }
 
+  // ✅ NUEVO MÉTODO PARA RESPONDER TICKETS (para admins/secretarias)
+  async respondTicket(ticketId, respuesta, estado = "en_proceso") {
+    return await this.request(`/tickets/${ticketId}/respond`, {
+      method: "POST",
+      body: JSON.stringify({ respuesta, estado }),
+    });
+  }
+
+  // ✅ NUEVO MÉTODO PARA OBTENER RESPUESTAS DE UN TICKET
+  async getTicketResponses(ticketId) {
+    return await this.request(`/tickets/${ticketId}/responses`);
+  }
+
+  // ✅ MÉTODO PARA ACTUALIZAR ESTADO DE TICKET (solo admins)
+  async updateTicketStatus(ticketId, estado) {
+    return await this.request(`/tickets/${ticketId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ estado }),
+    });
+  }
+
   // ==================
-  // MÉTODOS DE PUBLICACIONES
+  // MÉTODOS DE PUBLICACIONES (ACTUALIZADOS)
   // ==================
 
   async getPublicaciones() {
     return await this.request("/publicaciones");
+  }
+
+  // ✅ NUEVO MÉTODO PARA CREAR PUBLICACIONES CON IMAGEN (solo admins)
+  async createPublicacion(publicacionData) {
+    return await this.request("/publicaciones", {
+      method: "POST",
+      body: JSON.stringify(publicacionData),
+    });
+  }
+
+  // ✅ MÉTODO ESPECÍFICO PARA CREAR PUBLICACIONES CON FORMDATA (imágenes)
+  async createPublicacionConFormData(formData) {
+    return await this.request("/publicaciones", {
+      method: "POST",
+      headers: {}, // Sin Content-Type para FormData
+      body: formData,
+    });
+  }
+
+  // ✅ MÉTODO PARA EDITAR PUBLICACIONES (solo admins)
+  async updatePublicacion(publicacionId, publicacionData) {
+    return await this.request(`/publicaciones/${publicacionId}`, {
+      method: "PUT",
+      body: JSON.stringify(publicacionData),
+    });
+  }
+
+  // ✅ MÉTODO PARA ELIMINAR PUBLICACIONES (solo admins)
+  async deletePublicacion(publicacionId) {
+    return await this.request(`/publicaciones/${publicacionId}`, {
+      method: "DELETE",
+    });
+  }
+
+  // ==================
+  // MÉTODOS DE UTILIDAD
+  // ==================
+
+  // ✅ MÉTODO PARA VERIFICAR SI EL USUARIO ESTÁ AUTENTICADO
+  isAuthenticated() {
+    return !!(this.sessionId && this.getCurrentUser());
+  }
+
+  // ✅ MÉTODO PARA VERIFICAR ROL DEL USUARIO
+  hasRole(rol) {
+    const user = this.getCurrentUser();
+    return user && user.rol === rol;
+  }
+
+  // ✅ MÉTODO PARA VERIFICAR SI ES ADMIN
+  isAdmin() {
+    return this.hasRole("admin");
+  }
+
+  // ✅ MÉTODO PARA VERIFICAR SI ES ESTUDIANTE
+  isStudent() {
+    return this.hasRole("estudiante");
+  }
+
+  // ✅ MÉTODO PARA VERIFICAR SI ES SECRETARIA
+  isSecretary() {
+    return this.hasRole("secretaria");
+  }
+
+  // ✅ MÉTODO PARA VERIFICAR SI ES ADMIN O SECRETARIA
+  isAdminOrSecretary() {
+    const user = this.getCurrentUser();
+    return user && ["admin", "secretaria"].includes(user.rol);
+  }
+
+  // ✅ MÉTODO PARA OBTENER EL ROL ACTUAL
+  getCurrentRole() {
+    const user = this.getCurrentUser();
+    return user ? user.rol : null;
+  }
+
+  // ✅ MÉTODO PARA OBTENER EL NOMBRE DEL USUARIO
+  getCurrentUsername() {
+    const user = this.getCurrentUser();
+    return user ? user.username : null;
+  }
+
+  // ✅ MÉTODO PARA VERIFICAR SI LA SESIÓN ES VÁLIDA
+  async validateSession() {
+    try {
+      await this.getUserInfo();
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  // ==================
+  // MÉTODOS PARA COMENTARIOS Y VOTACIONES (FUTUROS)
+  // ==================
+
+  // ✅ MÉTODO PARA VOTAR COMENTARIOS
+  async voteComment(commentId, tipo) {
+    return await this.request(`/comments/${commentId}/vote`, {
+      method: "POST",
+      body: JSON.stringify({ tipo }),
+    });
+  }
+
+  // ✅ MÉTODO PARA EDITAR COMENTARIOS
+  async updateComment(commentId, contenido) {
+    return await this.request(`/comments/${commentId}`, {
+      method: "PUT",
+      body: JSON.stringify({ contenido }),
+    });
+  }
+
+  // ✅ MÉTODO PARA ELIMINAR COMENTARIOS
+  async deleteComment(commentId) {
+    return await this.request(`/comments/${commentId}`, {
+      method: "DELETE",
+    });
+  }
+
+  // ==================
+  // MÉTODOS DE ESTADÍSTICAS (PARA ADMINS)
+  // ==================
+
+  // ✅ MÉTODO PARA OBTENER ESTADÍSTICAS GENERALES
+  async getStats() {
+    return await this.request("/stats");
+  }
+
+  // ✅ MÉTODO PARA OBTENER ESTADÍSTICAS DE TICKETS
+  async getTicketStats() {
+    return await this.request("/stats/tickets");
+  }
+
+  // ✅ MÉTODO PARA OBTENER ESTADÍSTICAS DE USUARIOS
+  async getUserStats() {
+    return await this.request("/stats/users");
+  }
+
+  // ==================
+  // MÉTODOS DE CONFIGURACIÓN (PARA ADMINS)
+  // ==================
+
+  // ✅ MÉTODO PARA OBTENER CONFIGURACIÓN
+  async getConfig() {
+    return await this.request("/config");
+  }
+
+  // ✅ MÉTODO PARA ACTUALIZAR CONFIGURACIÓN
+  async updateConfig(configData) {
+    return await this.request("/config", {
+      method: "PUT",
+      body: JSON.stringify(configData),
+    });
   }
 }
 
