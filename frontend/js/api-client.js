@@ -74,6 +74,26 @@ class ApiClient {
     return JSON.parse(localStorage.getItem("user") || "null");
   }
 
+  getCurrentUser() {
+    return JSON.parse(localStorage.getItem("user") || "null");
+  }
+
+  async getUserInfo() {
+    try {
+      const response = await this.request("/auth/me");
+      // Actualizar localStorage con info fresca
+      localStorage.setItem("user", JSON.stringify(response.user));
+      return response.user;
+    } catch (error) {
+      console.error("Error obteniendo info del usuario:", error);
+      // Si hay error de autenticación, cerrar sesión
+      if (error.message.includes("401") || error.message.includes("inválida")) {
+        this.logout();
+      }
+      throw error;
+    }
+  }
+
   async forgotPassword(email) {
     return await this.request("/auth/forgot-password", {
       method: "POST",

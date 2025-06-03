@@ -15,6 +15,7 @@
       <p class="text-sm">Universidad Sergio Arboleda</p>
     </header>
 
+    <!-- ✅ NAV CON ETIQUETA DE ROL SIMPLE -->
     <nav
       class="w-full flex justify-between items-center bg-blue-900 text-white px-6 py-2 shadow-sm"
     >
@@ -23,9 +24,17 @@
         <a href="publicaciones.html">Publicaciones</a>
         <a href="tickets.html">Tickets</a>
       </div>
-      <button onclick="cerrarSesion()" class="bg-red-500 px-3 py-1 rounded">
-        Cerrar sesión
-      </button>
+
+      <!-- ✅ ETIQUETA SIMPLE DE ROL -->
+      <div class="flex items-center space-x-3">
+        <span id="rol-usuario" class="text-white text-sm"></span>
+        <button
+          onclick="cerrarSesion()"
+          class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded transition-colors"
+        >
+          Cerrar sesión
+        </button>
+      </div>
     </nav>
 
     <div class="foro-bg">
@@ -112,8 +121,9 @@
       </main>
     </div>
 
-    <!-- Scripts -->
+    <!-- ✅ SCRIPTS CON ROL SIMPLE -->
     <script src="js/api-client.js"></script>
+    <script src="js/simple-role.js"></script>
     <script src="js/foro.js"></script>
   </body>
 </html>

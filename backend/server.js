@@ -1,4 +1,5 @@
-// server.js - Servidor backend para el foro universitario
+// server.js - Sistema completo con roles y autorización
+require("dotenv").config();
 const express = require("express");
 const mysql = require("mysql2/promise");
 const bcrypt = require("bcrypt");
@@ -10,27 +11,26 @@ const { v4: uuidv4 } = require("uuid");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
+// Middleware básico
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public")); // Para servir archivos estáticos
-app.use("/uploads", express.static("uploads")); // Para imágenes subidas
+app.use(express.static("public"));
+app.use("/uploads", express.static("uploads"));
 
 // Configuración de base de datos
 const dbConfig = {
-  host: "localhost",
-  user: "root",
-  password: "123456", // Cambia por tu contraseña de MySQL
-  database: "foro_universitario",
+  host: process.env.DB_HOST || "localhost",
+  user: process.env.DB_USER || "root",
+  password: process.env.DB_PASSWORD || "123456",
+  database: process.env.DB_NAME || "foro_universitario",
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
 };
 
-// Pool de conexiones
 const pool = mysql.createPool(dbConfig);
 
-// Configuración de multer para subida de archivos
+// Configuración de multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, "uploads/");
@@ -40,9 +40,10 @@ const storage = multer.diskStorage({
     cb(null, uniqueSuffix + path.extname(file.originalname));
   },
 });
+
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB límite
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
@@ -52,223 +53,9 @@ const upload = multer({
   },
 });
 
-// ======================
-// RUTAS DE AUTENTICACIÓN
-// ======================
+// ✅ MIDDLEWARES DE AUTENTICACIÓN Y AUTORIZACIÓN
 
-// Registro de usuarios
-app.post("/api/auth/register", async (req, res) => {
-  try {
-    const { email, username, password, rol = "usuario" } = req.body;
-
-    // Validaciones
-    if (!email.endsWith("@usa.edu.co")) {
-      return res
-        .status(400)
-        .json({ error: "El correo debe ser institucional (@usa.edu.co)" });
-    }
-
-    if (password.length <= 4) {
-      return res
-        .status(400)
-        .json({ error: "La contraseña debe tener más de 4 caracteres" });
-    }
-
-    // Verificar si el usuario ya existe
-    const [existingUsers] = await pool.execute(
-      "SELECT email FROM usuarios WHERE email = ?",
-      [email]
-    );
-
-    if (existingUsers.length > 0) {
-      return res.status(400).json({ error: "Este correo ya está registrado" });
-    }
-
-    // Encriptar contraseña
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
-
-    // Insertar usuario
-    const [result] = await pool.execute(
-      "INSERT INTO usuarios (email, username, password_hash, rol) VALUES (?, ?, ?, ?)",
-      [email, username, passwordHash, rol]
-    );
-
-    res.status(201).json({
-      message: "Usuario registrado exitosamente",
-      userId: result.insertId,
-    });
-  } catch (error) {
-    console.error("Error en registro:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// Login de usuarios
-app.post("/api/auth/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    // Buscar usuario
-    const [users] = await pool.execute(
-      "SELECT id, email, username, password_hash, rol FROM usuarios WHERE email = ? AND activo = TRUE",
-      [email]
-    );
-
-    if (users.length === 0) {
-      return res.status(401).json({ error: "Credenciales incorrectas" });
-    }
-
-    const user = users[0];
-
-    // Verificar contraseña
-    const passwordMatch = await bcrypt.compare(password, user.password_hash);
-    if (!passwordMatch) {
-      return res.status(401).json({ error: "Credenciales incorrectas" });
-    }
-
-    // Crear sesión
-    const sessionId = uuidv4();
-    const expirationDate = new Date();
-    expirationDate.setHours(expirationDate.getHours() + 24); // 24 horas
-
-    await pool.execute(
-      "INSERT INTO sesiones (id, usuario_id, fecha_expiracion) VALUES (?, ?, ?)",
-      [sessionId, user.id, expirationDate]
-    );
-
-    // Actualizar última conexión
-    await pool.execute(
-      "UPDATE usuarios SET ultima_conexion = CURRENT_TIMESTAMP WHERE id = ?",
-      [user.id]
-    );
-
-    res.json({
-      message: "Login exitoso",
-      sessionId: sessionId,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        rol: user.rol,
-      },
-    });
-  } catch (error) {
-    console.error("Error en login:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// Recuperar contraseña
-app.post("/api/auth/forgot-password", async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    // Validar email institucional
-    if (!email.endsWith("@usa.edu.co")) {
-      return res
-        .status(400)
-        .json({ error: "El correo debe ser institucional (@usa.edu.co)" });
-    }
-
-    // Buscar usuario
-    const [users] = await pool.execute(
-      "SELECT id, email, username FROM usuarios WHERE email = ? AND activo = TRUE",
-      [email]
-    );
-
-    if (users.length === 0) {
-      return res
-        .status(404)
-        .json({ error: "No se encontró una cuenta con ese correo" });
-    }
-
-    const user = users[0];
-
-    // Generar token de recuperación
-    const resetToken = uuidv4();
-    const expirationDate = new Date();
-    expirationDate.setHours(expirationDate.getHours() + 1); // 1 hora de expiración
-
-    // Guardar token en base de datos
-    await pool.execute(
-      `INSERT INTO password_resets (usuario_id, token, fecha_expiracion) 
-       VALUES (?, ?, ?) 
-       ON DUPLICATE KEY UPDATE token = VALUES(token), fecha_expiracion = VALUES(fecha_expiracion)`,
-      [user.id, resetToken, expirationDate]
-    );
-
-    // En un entorno real, aquí enviarías un email
-    // Por ahora, devolvemos el token (solo para desarrollo)
-    res.json({
-      message: "Se ha generado un token de recuperación",
-      resetToken: resetToken, // Solo para desarrollo - NO hacer en producción
-      email: user.email,
-    });
-  } catch (error) {
-    console.error("Error en recuperación de contraseña:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// Resetear contraseña con token
-app.post("/api/auth/reset-password", async (req, res) => {
-  try {
-    const { token, newPassword } = req.body;
-
-    if (newPassword.length <= 4) {
-      return res
-        .status(400)
-        .json({ error: "La contraseña debe tener más de 4 caracteres" });
-    }
-
-    // Verificar token válido y no expirado
-    const [resets] = await pool.execute(
-      `SELECT pr.*, u.email FROM password_resets pr 
-       JOIN usuarios u ON pr.usuario_id = u.id 
-       WHERE pr.token = ? AND pr.fecha_expiracion > NOW() AND pr.usado = FALSE`,
-      [token]
-    );
-
-    if (resets.length === 0) {
-      return res.status(400).json({ error: "Token inválido o expirado" });
-    }
-
-    const resetData = resets[0];
-
-    // Encriptar nueva contraseña
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
-
-    // Actualizar contraseña
-    await pool.execute("UPDATE usuarios SET password_hash = ? WHERE id = ?", [
-      passwordHash,
-      resetData.usuario_id,
-    ]);
-
-    // Marcar token como usado
-    await pool.execute(
-      "UPDATE password_resets SET usado = TRUE WHERE token = ?",
-      [token]
-    );
-
-    // Invalidar todas las sesiones activas del usuario
-    await pool.execute(
-      "UPDATE sesiones SET activa = FALSE WHERE usuario_id = ?",
-      [resetData.usuario_id]
-    );
-
-    res.json({
-      message: "Contraseña actualizada exitosamente",
-      email: resetData.email,
-    });
-  } catch (error) {
-    console.error("Error reseteando contraseña:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// Middleware de autenticación
+// Middleware de autenticación básico
 async function authenticateUser(req, res, next) {
   try {
     const sessionId = req.headers.authorization?.replace("Bearer ", "");
@@ -297,15 +84,425 @@ async function authenticateUser(req, res, next) {
   }
 }
 
+// ✅ Middleware para verificar que el usuario sea ESTUDIANTE
+function requireStudent(req, res, next) {
+  if (req.user.rol !== "estudiante") {
+    return res.status(403).json({
+      error: "Acceso denegado. Solo estudiantes pueden realizar esta acción.",
+      requiredRole: "estudiante",
+      userRole: req.user.rol,
+    });
+  }
+  next();
+}
+
+// ✅ Middleware para verificar que el usuario sea ADMIN
+function requireAdmin(req, res, next) {
+  if (req.user.rol !== "admin") {
+    return res.status(403).json({
+      error:
+        "Acceso denegado. Solo administradores pueden realizar esta acción.",
+      requiredRole: "admin",
+      userRole: req.user.rol,
+    });
+  }
+  next();
+}
+
+// ✅ Middleware para verificar que sea ADMIN o SECRETARIA
+function requireAdminOrSecretary(req, res, next) {
+  if (!["admin", "secretaria"].includes(req.user.rol)) {
+    return res.status(403).json({
+      error:
+        "Acceso denegado. Solo administradores o secretarias pueden realizar esta acción.",
+      requiredRole: "admin o secretaria",
+      userRole: req.user.rol,
+    });
+  }
+  next();
+}
+
 // ======================
-// RUTAS DEL FORO
+// RUTAS DE AUTENTICACIÓN
 // ======================
 
-// Obtener todos los posts
+// ✅ Registro con roles específicos
+app.post("/api/auth/register", async (req, res) => {
+  try {
+    const { email, username, password, rol = "estudiante" } = req.body;
+
+    // Validar email institucional
+    if (!email.endsWith("@usa.edu.co")) {
+      return res.status(400).json({
+        error: "El correo debe ser institucional (@usa.edu.co)",
+      });
+    }
+
+    if (password.length <= 4) {
+      return res.status(400).json({
+        error: "La contraseña debe tener más de 4 caracteres",
+      });
+    }
+
+    // ✅ Validar roles permitidos
+    const rolesPermitidos = ["estudiante", "admin", "secretaria"];
+    if (!rolesPermitidos.includes(rol)) {
+      return res.status(400).json({
+        error: "Rol inválido. Roles permitidos: " + rolesPermitidos.join(", "),
+      });
+    }
+
+    // ✅ Solo admins pueden crear otros admins o secretarias
+    if (["admin", "secretaria"].includes(rol)) {
+      // Aquí puedes agregar lógica adicional para verificar quien está creando el usuario
+      // Por ejemplo, requerir un código especial para crear admins
+      const { adminCode } = req.body;
+      if (adminCode !== process.env.ADMIN_REGISTRATION_CODE) {
+        return res.status(403).json({
+          error:
+            "Código de administrador requerido para crear este tipo de cuenta",
+        });
+      }
+    }
+
+    // Verificar si el usuario ya existe
+    const [existingUsers] = await pool.execute(
+      "SELECT email FROM usuarios WHERE email = ?",
+      [email]
+    );
+
+    if (existingUsers.length > 0) {
+      return res.status(400).json({ error: "Este correo ya está registrado" });
+    }
+
+    // Encriptar contraseña
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(password, saltRounds);
+
+    // Insertar usuario
+    const [result] = await pool.execute(
+      "INSERT INTO usuarios (email, username, password_hash, rol) VALUES (?, ?, ?, ?)",
+      [email, username, passwordHash, rol]
+    );
+
+    res.status(201).json({
+      message: "Usuario registrado exitosamente",
+      userId: result.insertId,
+      rol: rol,
+    });
+  } catch (error) {
+    console.error("Error en registro:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// Login (sin cambios, ya funciona bien)
+app.post("/api/auth/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    const [users] = await pool.execute(
+      "SELECT id, email, username, password_hash, rol FROM usuarios WHERE email = ? AND activo = TRUE",
+      [email]
+    );
+
+    if (users.length === 0) {
+      return res.status(401).json({ error: "Credenciales incorrectas" });
+    }
+
+    const user = users[0];
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+
+    if (!passwordMatch) {
+      return res.status(401).json({ error: "Credenciales incorrectas" });
+    }
+
+    const sessionId = uuidv4();
+    const expirationDate = new Date();
+    expirationDate.setHours(expirationDate.getHours() + 24);
+
+    await pool.execute(
+      "INSERT INTO sesiones (id, usuario_id, fecha_expiracion) VALUES (?, ?, ?)",
+      [sessionId, user.id, expirationDate]
+    );
+
+    await pool.execute(
+      "UPDATE usuarios SET ultima_conexion = CURRENT_TIMESTAMP WHERE id = ?",
+      [user.id]
+    );
+
+    res.json({
+      message: "Login exitoso",
+      sessionId: sessionId,
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        rol: user.rol, // ✅ Importante: devolver el rol
+      },
+    });
+  } catch (error) {
+    console.error("Error en login:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// ======================
+// RUTAS DE TICKETS (CON ROLES)
+// ======================
+
+// ✅ Crear ticket - SOLO ESTUDIANTES
+app.post("/api/tickets", authenticateUser, requireStudent, async (req, res) => {
+  try {
+    const { titulo, mensaje, prioridad = "media" } = req.body;
+    const userId = req.user.user_id;
+    const nombre = req.user.username;
+
+    if (!titulo || !mensaje) {
+      return res.status(400).json({
+        error: "Título y mensaje son requeridos",
+      });
+    }
+
+    const [result] = await pool.execute(
+      "INSERT INTO tickets (usuario_id, nombre, titulo, mensaje, prioridad, estado) VALUES (?, ?, ?, ?, ?, 'abierto')",
+      [userId, nombre, titulo, mensaje, prioridad]
+    );
+
+    res.status(201).json({
+      message: "Ticket creado exitosamente",
+      ticketId: result.insertId,
+    });
+  } catch (error) {
+    console.error("Error creando ticket:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// ✅ Obtener tickets - Diferentes vistas según el rol
+app.get("/api/tickets", authenticateUser, async (req, res) => {
+  try {
+    let query = `
+      SELECT t.*, u.username as usuario_nombre 
+      FROM tickets t 
+      JOIN usuarios u ON t.usuario_id = u.id 
+    `;
+    let params = [];
+
+    if (req.user.rol === "estudiante") {
+      // Estudiantes solo ven sus propios tickets
+      query += " WHERE t.usuario_id = ?";
+      params.push(req.user.user_id);
+    } else if (["admin", "secretaria"].includes(req.user.rol)) {
+      // Admins y secretarias ven todos los tickets
+      // No agregar WHERE clause
+    } else {
+      return res
+        .status(403)
+        .json({ error: "Rol no autorizado para ver tickets" });
+    }
+
+    query += " ORDER BY t.fecha_creacion DESC";
+
+    const [tickets] = await pool.execute(query, params);
+    res.json(tickets);
+  } catch (error) {
+    console.error("Error obteniendo tickets:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// ✅ NUEVA RUTA: Responder ticket - SOLO ADMINS/SECRETARIAS
+app.post(
+  "/api/tickets/:id/respond",
+  authenticateUser,
+  requireAdminOrSecretary,
+  async (req, res) => {
+    try {
+      const ticketId = req.params.id;
+      const { respuesta, estado = "en_proceso" } = req.body;
+      const adminId = req.user.user_id;
+
+      if (!respuesta) {
+        return res.status(400).json({ error: "La respuesta es requerida" });
+      }
+
+      // Verificar que el ticket existe
+      const [tickets] = await pool.execute(
+        "SELECT id, estado FROM tickets WHERE id = ?",
+        [ticketId]
+      );
+
+      if (tickets.length === 0) {
+        return res.status(404).json({ error: "Ticket no encontrado" });
+      }
+
+      // Insertar respuesta
+      await pool.execute(
+        "INSERT INTO ticket_respuestas (ticket_id, admin_id, respuesta) VALUES (?, ?, ?)",
+        [ticketId, adminId, respuesta]
+      );
+
+      // Actualizar estado del ticket
+      await pool.execute(
+        "UPDATE tickets SET estado = ?, fecha_respuesta = CURRENT_TIMESTAMP WHERE id = ?",
+        [estado, ticketId]
+      );
+
+      res.json({
+        message: "Respuesta agregada exitosamente",
+        ticketId: ticketId,
+        estado: estado,
+      });
+    } catch (error) {
+      console.error("Error respondiendo ticket:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  }
+);
+
+// ✅ NUEVA RUTA: Obtener respuestas de un ticket
+app.get("/api/tickets/:id/responses", authenticateUser, async (req, res) => {
+  try {
+    const ticketId = req.params.id;
+
+    // Verificar que el usuario puede ver este ticket
+    let canView = false;
+
+    if (req.user.rol === "estudiante") {
+      // Estudiantes solo pueden ver respuestas de sus propios tickets
+      const [tickets] = await pool.execute(
+        "SELECT id FROM tickets WHERE id = ? AND usuario_id = ?",
+        [ticketId, req.user.user_id]
+      );
+      canView = tickets.length > 0;
+    } else if (["admin", "secretaria"].includes(req.user.rol)) {
+      // Admins y secretarias pueden ver todas las respuestas
+      canView = true;
+    }
+
+    if (!canView) {
+      return res
+        .status(403)
+        .json({ error: "No tienes permiso para ver este ticket" });
+    }
+
+    const [respuestas] = await pool.execute(
+      `SELECT tr.*, u.username as admin_nombre 
+       FROM ticket_respuestas tr 
+       JOIN usuarios u ON tr.admin_id = u.id 
+       WHERE tr.ticket_id = ? 
+       ORDER BY tr.fecha_respuesta ASC`,
+      [ticketId]
+    );
+
+    res.json(respuestas);
+  } catch (error) {
+    console.error("Error obteniendo respuestas:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// ======================
+// RUTAS DE PUBLICACIONES (CON ROLES)
+// ======================
+
+// ✅ Crear publicación - SOLO ADMINS
+app.post(
+  "/api/publicaciones",
+  authenticateUser,
+  requireAdmin,
+  async (req, res) => {
+    try {
+      const {
+        titulo,
+        contenido,
+        destacada = false,
+        fecha_expiracion,
+      } = req.body;
+      const adminId = req.user.user_id;
+
+      if (!titulo || !contenido) {
+        return res.status(400).json({
+          error: "Título y contenido son requeridos",
+        });
+      }
+
+      const [result] = await pool.execute(
+        `INSERT INTO publicaciones (admin_id, titulo, contenido, destacada, fecha_expiracion) 
+       VALUES (?, ?, ?, ?, ?)`,
+        [adminId, titulo, contenido, destacada, fecha_expiracion || null]
+      );
+
+      res.status(201).json({
+        message: "Publicación creada exitosamente",
+        publicacionId: result.insertId,
+      });
+    } catch (error) {
+      console.error("Error creando publicación:", error);
+      res.status(500).json({ error: "Error interno del servidor" });
+    }
+  }
+);
+
+// ✅ Obtener publicaciones - TODOS pueden ver, ADMINS pueden ver inactivas
+app.get("/api/publicaciones", async (req, res) => {
+  try {
+    let query = `
+      SELECT p.*, u.username as admin_nombre 
+      FROM publicaciones p 
+      JOIN usuarios u ON p.admin_id = u.id 
+    `;
+
+    // Si no es admin, solo mostrar publicaciones activas y no expiradas
+    const sessionId = req.headers.authorization?.replace("Bearer ", "");
+    let isAdmin = false;
+
+    if (sessionId) {
+      const [sessions] = await pool.execute(
+        `SELECT u.rol FROM sesiones s 
+         JOIN usuarios u ON s.usuario_id = u.id 
+         WHERE s.id = ? AND s.activa = TRUE AND s.fecha_expiracion > NOW()`,
+        [sessionId]
+      );
+
+      if (sessions.length > 0 && sessions[0].rol === "admin") {
+        isAdmin = true;
+      }
+    }
+
+    if (!isAdmin) {
+      query +=
+        " WHERE p.activa = TRUE AND (p.fecha_expiracion IS NULL OR p.fecha_expiracion > CURDATE())";
+    }
+
+    query += " ORDER BY p.destacada DESC, p.fecha_creacion DESC";
+
+    const [publicaciones] = await pool.execute(query);
+    res.json(publicaciones);
+  } catch (error) {
+    console.error("Error obteniendo publicaciones:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+app.get("/api/auth/me", authenticateUser, (req, res) => {
+  res.json({
+    user: {
+      id: req.user.user_id,
+      email: req.user.email,
+      username: req.user.username,
+      rol: req.user.rol,
+    },
+  });
+});
+
+// ======================
+// RUTAS DE POSTS (sin cambios de rol, todos pueden crear)
+// ======================
+
 app.get("/api/posts", async (req, res) => {
   try {
-    console.log("Intentando obtener posts...");
-
     const [posts] = await pool.execute(
       `SELECT p.*, u.username, u.email,
               (p.votos_positivos - p.votos_negativos) as score,
@@ -319,7 +516,6 @@ app.get("/api/posts", async (req, res) => {
        LIMIT 20`
     );
 
-    console.log(`Encontrados ${posts.length} posts`);
     res.json(posts);
   } catch (error) {
     console.error("Error obteniendo posts:", error);
@@ -327,7 +523,6 @@ app.get("/api/posts", async (req, res) => {
   }
 });
 
-// Crear nuevo post
 app.post(
   "/api/posts",
   authenticateUser,
@@ -359,186 +554,9 @@ app.post(
   }
 );
 
-// Votar en un post
-app.post("/api/posts/:id/vote", authenticateUser, async (req, res) => {
-  try {
-    const postId = req.params.id;
-    const { tipo } = req.body; // 'positivo' o 'negativo'
-    const userId = req.user.user_id;
-
-    if (!["positivo", "negativo"].includes(tipo)) {
-      return res.status(400).json({ error: "Tipo de voto inválido" });
-    }
-
-    // Verificar si ya votó
-    const [existingVote] = await pool.execute(
-      "SELECT tipo FROM votaciones WHERE usuario_id = ? AND post_id = ?",
-      [userId, postId]
-    );
-
-    if (existingVote.length > 0) {
-      // Si el voto es el mismo, lo eliminamos
-      if (existingVote[0].tipo === tipo) {
-        await pool.execute(
-          "DELETE FROM votaciones WHERE usuario_id = ? AND post_id = ?",
-          [userId, postId]
-        );
-      } else {
-        // Si es diferente, lo actualizamos
-        await pool.execute(
-          "UPDATE votaciones SET tipo = ? WHERE usuario_id = ? AND post_id = ?",
-          [tipo, userId, postId]
-        );
-      }
-    } else {
-      // Insertar nuevo voto
-      await pool.execute(
-        "INSERT INTO votaciones (usuario_id, post_id, tipo) VALUES (?, ?, ?)",
-        [userId, postId, tipo]
-      );
-    }
-
-    // Actualizar contadores en el post
-    await pool.execute(
-      `UPDATE posts SET 
-       votos_positivos = (SELECT COUNT(*) FROM votaciones WHERE post_id = ? AND tipo = 'positivo'),
-       votos_negativos = (SELECT COUNT(*) FROM votaciones WHERE post_id = ? AND tipo = 'negativo')
-       WHERE id = ?`,
-      [postId, postId, postId]
-    );
-
-    res.json({ message: "Voto registrado exitosamente" });
-  } catch (error) {
-    console.error("Error en votación:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// Obtener comentarios de un post
-app.get("/api/posts/:id/comments", async (req, res) => {
-  try {
-    const postId = req.params.id;
-
-    const [comments] = await pool.execute(
-      `SELECT c.*, u.username 
-       FROM comentarios c 
-       JOIN usuarios u ON c.usuario_id = u.id 
-       WHERE c.post_id = ? AND c.activo = TRUE 
-       ORDER BY c.fecha_creacion ASC`,
-      [postId]
-    );
-
-    res.json(comments);
-  } catch (error) {
-    console.error("Error obteniendo comentarios:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// Crear comentario
-app.post("/api/posts/:id/comments", authenticateUser, async (req, res) => {
-  try {
-    const postId = req.params.id;
-    const { contenido } = req.body;
-    const userId = req.user.user_id;
-
-    if (!contenido || contenido.trim().length === 0) {
-      return res
-        .status(400)
-        .json({ error: "El comentario no puede estar vacío" });
-    }
-
-    const [result] = await pool.execute(
-      "INSERT INTO comentarios (post_id, usuario_id, contenido) VALUES (?, ?, ?)",
-      [postId, userId, contenido.trim()]
-    );
-
-    res.status(201).json({
-      message: "Comentario creado exitosamente",
-      commentId: result.insertId,
-    });
-  } catch (error) {
-    console.error("Error creando comentario:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// ======================
-// RUTAS DE TICKETS
-// ======================
-
-// Crear ticket
-app.post("/api/tickets", authenticateUser, async (req, res) => {
-  try {
-    const { titulo, mensaje, prioridad = "media" } = req.body;
-    const userId = req.user.user_id;
-    const nombre = req.user.username;
-
-    const [result] = await pool.execute(
-      "INSERT INTO tickets (usuario_id, nombre, titulo, mensaje, prioridad) VALUES (?, ?, ?, ?, ?)",
-      [userId, nombre, titulo, mensaje, prioridad]
-    );
-
-    res.status(201).json({
-      message: "Ticket creado exitosamente",
-      ticketId: result.insertId,
-    });
-  } catch (error) {
-    console.error("Error creando ticket:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// Obtener tickets
-app.get("/api/tickets", authenticateUser, async (req, res) => {
-  try {
-    let query = `
-      SELECT t.*, u.username as usuario_nombre 
-      FROM tickets t 
-      JOIN usuarios u ON t.usuario_id = u.id 
-    `;
-    let params = [];
-
-    // Si es usuario normal, solo sus tickets
-    if (req.user.rol !== "admin") {
-      query += " WHERE t.usuario_id = ?";
-      params.push(req.user.user_id);
-    }
-
-    query += " ORDER BY t.fecha_creacion DESC";
-
-    const [tickets] = await pool.execute(query, params);
-    res.json(tickets);
-  } catch (error) {
-    console.error("Error obteniendo tickets:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// ======================
-// RUTAS DE PUBLICACIONES
-// ======================
-
-// Obtener publicaciones
-app.get("/api/publicaciones", async (req, res) => {
-  try {
-    const [publicaciones] = await pool.execute(
-      `SELECT p.*, u.username as admin_nombre 
-       FROM publicaciones p 
-       JOIN usuarios u ON p.admin_id = u.id 
-       WHERE p.activa = TRUE AND (p.fecha_expiracion IS NULL OR p.fecha_expiracion > CURDATE())
-       ORDER BY p.destacada DESC, p.fecha_creacion DESC`
-    );
-
-    res.json(publicaciones);
-  } catch (error) {
-    console.error("Error obteniendo publicaciones:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`Servidor ejecutándose en puerto ${PORT}`);
   console.log(`API disponible en http://localhost:${PORT}/api`);
+  console.log(`Roles disponibles: estudiante, admin, secretaria`);
 });
