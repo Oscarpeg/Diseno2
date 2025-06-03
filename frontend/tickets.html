@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Tickets - Plataforma Secretaría</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 text-gray-800">
+    <header class="bg-blue-900 text-white p-4 text-center">
+      <h1 class="text-2xl font-bold">
+        Plataforma Secretaría - Escuela de Ciencias Exactas
+      </h1>
+      <p class="text-sm">Universidad Sergio Arboleda</p>
+    </header>
+
+    <nav class="flex justify-between items-center bg-blue-700 text-white p-2">
+      <div class="space-x-4">
+        <a href="foro.html" class="hover:underline">Foro</a>
+        <a href="publicaciones.html" class="hover:underline">Publicaciones</a>
+        <a href="tickets.html" class="underline font-semibold">Tickets</a>
+      </div>
+      <button
+        onclick="cerrarSesion()"
+        class="bg-red-500 px-3 py-1 rounded hover:bg-red-600 transition-colors"
+      >
+        Cerrar sesión
+      </button>
+    </nav>
+
+    <div class="foro-bg">
+      <main class="p-6">
+        <section id="tickets">
+          <!-- Header de la sección -->
+          <div class="mb-6">
+            <h2 class="text-2xl font-bold text-gray-800 mb-2">
+              🎫 Sistema de Tickets
+            </h2>
+            <p class="text-gray-600">
+              Envía solicitudes directas a la secretaría académica
+            </p>
+          </div>
+
+          <!-- Información del sistema -->
+          <div
+            class="mb-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500"
+          >
+            <p class="text-blue-800 mb-3">
+              <strong>💡 Sistema de Tickets:</strong> Utiliza este sistema para
+              solicitudes específicas que requieren atención personalizada.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div class="flex items-center">
+                <span
+                  class="inline-block w-3 h-3 bg-green-500 rounded-full mr-2"
+                ></span>
+                <span><strong>ABIERTO:</strong> Ticket recién creado</span>
+              </div>
+              <div class="flex items-center">
+                <span
+                  class="inline-block w-3 h-3 bg-yellow-500 rounded-full mr-2"
+                ></span>
+                <span><strong>EN PROCESO:</strong> Siendo atendido</span>
+              </div>
+              <div class="flex items-center">
+                <span
+                  class="inline-block w-3 h-3 bg-red-500 rounded-full mr-2"
+                ></span>
+                <span><strong>CERRADO:</strong> Resuelto o finalizado</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Formulario para crear ticket -->
+          <div class="mb-8 bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-semibold text-gray-800 mb-4">
+              ✉️ Crear Nuevo Ticket
+            </h3>
+
+            <form id="form-ticket" class="space-y-4">
+              <div>
+                <label
+                  for="titulo"
+                  class="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Título de la solicitud (opcional)
+                </label>
+                <input
+                  id="titulo"
+                  type="text"
+                  placeholder="Ej: Solicitud de certificado académico"
+                  class="input"
+                />
+                <p class="mt-1 text-sm text-gray-500">
+                  Si no especificas un título, se creará como "Solicitud
+                  general"
+                </p>
+              </div>
+
+              <div>
+                <label
+                  for="mensaje"
+                  class="block text-sm font-medium text-gray-700 mb-2"
+                >
+                  Descripción detallada <span class="text-red-500">*</span>
+                </label>
+                <textarea
+                  id="mensaje"
+                  placeholder="Describe tu solicitud con el mayor detalle posible. Incluye información relevante como fechas, documentos necesarios, etc."
+                  class="input"
+                  rows="5"
+                  required
+                ></textarea>
+                <p class="mt-1 text-sm text-gray-500">
+                  Mientras más detallada sea tu solicitud, más rápida será la
+                  respuesta
+                </p>
+              </div>
+
+              <button type="submit" class="btn-green">📤 Enviar Ticket</button>
+            </form>
+
+            <!-- Mensaje de estado del formulario -->
+            <div id="form-mensaje" class="mt-4 text-center text-sm"></div>
+          </div>
+
+          <!-- Lista de tickets -->
+          <div class="bg-white p-6 rounded-lg shadow-md">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-xl font-semibold text-gray-800">
+                📋 Mis Tickets
+              </h3>
+              <button
+                onclick="cargarTickets()"
+                class="text-blue-600 hover:text-blue-800 text-sm"
+                title="Actualizar lista"
+              >
+                🔄 Actualizar
+              </button>
+            </div>
+
+            <!-- Indicador de carga -->
+            <div id="loading-tickets" class="text-center py-8">
+              <div
+                class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"
+              ></div>
+              <p class="mt-2 text-gray-600">Cargando tus tickets...</p>
+            </div>
+
+            <!-- Lista de tickets -->
+            <div id="ticket-lista" class="space-y-4">
+              <!-- Los tickets se cargan aquí dinámicamente -->
+            </div>
+
+            <!-- Mensaje cuando no hay tickets -->
+            <div id="no-tickets" class="hidden text-center py-12">
+              <div class="text-6xl mb-4">📪</div>
+              <h3 class="text-xl font-semibold text-gray-600 mb-2">
+                No tienes tickets creados
+              </h3>
+              <p class="text-gray-500">
+                Crea tu primer ticket usando el formulario de arriba.
+              </p>
+            </div>
+
+            <!-- Mensaje de error -->
+            <div id="error-tickets" class="hidden text-center py-12">
+              <div class="text-6xl mb-4">⚠️</div>
+              <h3 class="text-xl font-semibold text-red-600 mb-2">
+                Error al cargar tickets
+              </h3>
+              <p class="text-gray-500 mb-4">
+                Hubo un problema al conectar con el servidor.
+              </p>
+              <button onclick="cargarTickets()" class="btn-blue">
+                🔄 Intentar nuevamente
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Información adicional -->
+        <aside class="mt-8 p-4 bg-gray-50 rounded-lg">
+          <h3 class="font-semibold text-gray-800 mb-3">
+            🤔 ¿Cuándo usar el sistema de tickets?
+          </h3>
+          <div class="text-sm text-gray-600 space-y-2">
+            <div class="flex items-start">
+              <span class="text-green-600 mr-2">✅</span>
+              <span>Solicitudes de certificados y documentos oficiales</span>
+            </div>
+            <div class="flex items-start">
+              <span class="text-green-600 mr-2">✅</span>
+              <span>Problemas con matrículas o pagos</span>
+            </div>
+            <div class="flex items-start">
+              <span class="text-green-600 mr-2">✅</span>
+              <span>Consultas sobre horarios y aulas</span>
+            </div>
+            <div class="flex items-start">
+              <span class="text-green-600 mr-2">✅</span>
+              <span>Solicitudes que requieren seguimiento personalizado</span>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-4 border-t border-gray-200">
+            <p class="text-sm text-gray-600">
+              <strong>💬 Para dudas generales:</strong> Usa el
+              <a href="foro.html" class="text-blue-600 underline">Foro</a> donde
+              otros estudiantes pueden ayudarte.
+            </p>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <!-- Template para tickets (referencia para JS) -->
+    <template id="ticket-template">
+      <div
+        class="ticket bg-white p-4 rounded-lg border-l-4 border-gray-300 shadow-sm"
+      >
+        <!-- Header del ticket -->
+        <div class="flex justify-between items-start mb-3">
+          <h4 class="titulo font-semibold text-lg text-gray-800"></h4>
+          <span class="estado px-2 py-1 rounded text-xs font-medium"></span>
+        </div>
+
+        <!-- Contenido -->
+        <p class="mensaje text-gray-700 mb-3 leading-relaxed"></p>
+
+        <!-- Metadata -->
+        <div class="meta text-sm text-gray-500 border-t pt-2">
+          <span class="fecha"></span>
+        </div>
+      </div>
+    </template>
+
+    <!-- Scripts -->
+    <script src="js/api-client.js"></script>
+    <script src="js/tickets.js"></script>
+  </body>
+</html>

@@ -1,0 +1,151 @@
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f3f4f6;
+  color: #1f2937;
+  margin: 0;
+  padding: 0;
+}
+
+/* Input y textarea */
+.input {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  box-sizing: border-box;
+  font-size: 1rem;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+}
+
+/* Botón azul */
+.btn-blue {
+  background-color: #2563eb;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.btn-blue:hover {
+  background-color: #1e40af;
+}
+
+/* Botón verde */
+.btn-green {
+  background-color: #16a34a;
+  color: white;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.btn-green:hover {
+  background-color: #166534;
+}
+
+/* Separador */
+hr {
+  border: 0;
+  height: 1px;
+  background-color: #d1d5db;
+  margin: 1.5rem 0;
+}
+
+/* CENTRAR TODO EL FORO */
+.foro-reddit {
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+/* CADA POST SEPARADO Y LIMPIO */
+.foro-reddit .post {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  padding: 16px;
+  display: flex;
+  gap: 16px;
+}
+
+/* COLUMNA DE VOTACIÓN */
+.foro-reddit .votes {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #2563eb; /* Azul primario */
+}
+
+/* BOTONES DE VOTO */
+.foro-reddit .votes button {
+  font-size: 1.2rem;
+  color: #2563eb;
+  transition: color 0.2s;
+}
+
+.foro-reddit .votes button:hover {
+  color: #1d4ed8; /* Azul oscuro al pasar el mouse */
+}
+
+/* CONTENIDO DEL POST */
+.foro-reddit .content {
+  flex-grow: 1;
+}
+
+.foro-reddit .text {
+  font-size: 1rem;
+  margin-bottom: 6px;
+  color: #1e293b;
+}
+
+.foro-reddit .meta {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+/* COMENTARIOS DENTRO DEL POST */
+.foro-reddit .comentario {
+  margin-left: 2rem;
+  padding-left: 1rem;
+  border-left: 2px solid #cbd5e1;
+  margin-top: 0.5rem;
+}
+
+.post img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+.foro-bg {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  isolation: isolate;
+}
+
+.foro-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("../img/imgfondo.webp");
+  background-size: cover;
+  background-position: center;
+  filter: blur(8px);
+  opacity: 0.6;
+  z-index: -1;
+}
+
+.foro-bg main {
+  flex-grow: 1;
+}

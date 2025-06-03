@@ -1,0 +1,143 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Plataforma Secretaría - Estudiantes</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="css/style.css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-gray-100 text-gray-800">
+    <header class="bg-blue-900 text-white p-4 text-center">
+      <h1 class="text-2xl font-bold">
+        Plataforma Secretaría - Escuela de Ciencias Exactas
+      </h1>
+      <p class="text-sm">Universidad Sergio Arboleda</p>
+    </header>
+
+    <div
+      id="auth"
+      class="min-h-screen flex items-center justify-center bg-gradient-to-b from-blue-900 via-blue-600 to-blue-300"
+    >
+      <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
+        <!-- Información del sistema -->
+        <div class="text-center mb-6 p-3 bg-blue-50 rounded-lg">
+          <p class="text-sm text-gray-700">
+            <strong>🎓 Sistema de Foro Universitario</strong><br />
+            Conecta estudiantes y secretaría académica
+          </p>
+        </div>
+
+        <!-- Sección de login -->
+        <div id="inicio-sesion" class="space-y-4">
+          <h3 class="text-xl font-semibold text-center text-gray-700">
+            USER LOGIN
+          </h3>
+
+          <input
+            id="login-email"
+            type="email"
+            placeholder="Correo institucional (@usa.edu.co)"
+            class="input"
+            required
+          />
+
+          <input
+            id="login-password"
+            type="password"
+            placeholder="Contraseña"
+            class="input"
+            required
+          />
+
+          <div class="flex justify-between text-sm text-gray-600">
+            <label class="flex items-center">
+              <input type="checkbox" class="mr-2" />
+              Recordarme
+            </label>
+            <a
+              href="forgot-password.html"
+              class="text-blue-600 hover:underline"
+            >
+              ¿Olvidaste tu contraseña?
+            </a>
+          </div>
+
+          <button onclick="iniciarSesion()" class="btn-blue w-full">
+            🔐 Iniciar Sesión
+          </button>
+
+          <!-- Mensaje de estado -->
+          <div id="login-mensaje" class="text-center text-sm mt-2"></div>
+        </div>
+
+        <hr class="my-6" />
+
+        <!-- Sección de registro -->
+        <div id="registro" class="space-y-4">
+          <h3 class="text-xl font-semibold text-center text-gray-700">
+            REGISTRO
+          </h3>
+
+          <input
+            id="reg-email"
+            type="email"
+            placeholder="Correo institucional (@usa.edu.co)"
+            class="input"
+            required
+          />
+
+          <input
+            id="reg-username"
+            type="text"
+            placeholder="Nombre de usuario"
+            class="input"
+            required
+          />
+
+          <input
+            id="reg-password"
+            type="password"
+            placeholder="Contraseña (mínimo 5 caracteres)"
+            class="input"
+            minlength="5"
+            required
+          />
+
+          <select id="reg-rol" class="input">
+            <option value="usuario">👨‍🎓 Estudiante</option>
+            <option value="admin">👩‍💼 Personal Administrativo</option>
+          </select>
+
+          <button onclick="registrar()" class="btn-green w-full">
+            ✨ Registrarse
+          </button>
+
+          <!-- Mensaje de estado -->
+          <div id="register-mensaje" class="text-center text-sm mt-2"></div>
+        </div>
+
+        <!-- Información adicional -->
+        <div class="mt-6 text-xs text-gray-500 text-center">
+          <p><strong>💡 Funcionalidades disponibles:</strong></p>
+          <ul class="mt-2 space-y-1">
+            <li>📝 Foro de preguntas y respuestas</li>
+            <li>📢 Publicaciones oficiales</li>
+            <li>🎫 Sistema de tickets de soporte</li>
+          </ul>
+        </div>
+
+        <!-- Información de contacto -->
+        <div class="mt-4 text-xs text-gray-500 text-center">
+          <p><strong>¿Problemas técnicos?</strong></p>
+          <p>Contacta: soporte@usa.edu.co</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/api-client.js"></script>
+    <script src="js/auth.js"></script>
+  </body>
+</html>

@@ -1,0 +1,139 @@
+# Foro Universitario - Universidad Sergio Arboleda
+
+Sistema de foro para conectar estudiantes y secretaría académica.
+
+## Requisitos Previos
+
+- Node.js 16+: https://nodejs.org/
+- MySQL 8.0+: https://dev.mysql.com/downloads/installer/
+- Python 3.x: Para servidor frontend (normalmente ya viene en Windows)
+
+## Instalación Paso a Paso
+
+### 1. Descargar el proyecto
+
+- Descomprime el archivo en tu escritorio
+- Deberías tener la estructura:
+
+foro-universitario/
+├── backend/
+├── frontend/
+└── database/
+
+### 2. Instalar MySQL (IMPORTANTE: Seguir estos pasos exactos)
+
+#### 2.1 Descargar MySQL
+
+1. Ve a: https://dev.mysql.com/downloads/installer/
+2. Descarga el instalador de 353.7M (NO el de 2.1M)
+3. En la página siguiente, haz clic en "No thanks, just start my download"
+
+#### 2.2 Instalar MySQL
+
+1. Ejecutar el instalador .msi
+2. Elegir "Custom" (no "Server only" ni "Full")
+3. Seleccionar SOLO estos productos:
+   - MySQL Server 8.0.42
+   - MySQL Workbench
+4. En "Type and Networking": dejar todo por defecto
+5. En "Authentication Method": elegir "Use Legacy Authentication Method"
+6. En "Accounts and Roles": crear contraseña ROOT (¡ANOTARLA!)
+7. En "Windows Service": dejar todo marcado
+8. En "Server File Permissions": elegir primera opción
+9. Ejecutar configuración y esperar
+
+#### 2.3 Verificar MySQL funciona
+
+1. Presiona Windows + R, escribe services.msc
+2. Busca "MySQL80" en la lista
+3. Debe decir "En ejecución" - si no, clic derecho → Iniciar
+
+### 3. Crear Base de Datos
+
+#### 3.1 Abrir MySQL Workbench
+
+1. Buscar "MySQL Workbench" en Windows
+2. Doble clic en "Local instance MySQL80"
+3. Introducir la contraseña ROOT que creaste
+
+#### 3.2 Ejecutar script de base de datos
+
+1. En MySQL Workbench, abrir archivo: database/setup.sql
+2. Ejecutar TODO el script (botón ⚡ o Ctrl+Shift+Enter)
+3. Verificar que se crearon las tablas: SHOW TABLES;
+
+### 4. Configurar Backend
+
+#### 4.1 Instalar dependencias
+
+# Abrir terminal/CMD en la carpeta del proyecto
+
+cd backend
+
+# Instalar dependencias
+
+npm install express mysql2 bcrypt cors multer uuid dotenv
+npm install -D nodemon
+
+#### 4.2 Configurar contraseña de MySQL
+
+1. Abrir archivo: backend/server.js
+2. Buscar línea 20 (aproximadamente)
+3. Cambiar:
+
+password: '123456', // Cambia por tu contraseña de MySQL
+
+Por:
+
+password: 'La que creaste en MySQL',
+
+### 5. Ejecutar el Sistema
+
+#### 5.1 Iniciar Backend
+
+# En terminal, desde carpeta backend/
+
+npm run dev
+
+Debe mostrar:
+
+Servidor ejecutándose en puerto 3000
+API disponible en http://localhost:3000/api
+
+#### 5.2 Iniciar Frontend
+
+Abrir OTRA terminal (mantener backend corriendo):
+
+# Navegar a carpeta frontend/
+
+cd frontend
+
+# Iniciar servidor
+
+python -m http.server 8000
+
+Debe mostrar: Serving HTTP on :: port 8000
+
+### 6. Acceder al Sistema
+
+- Frontend: http://localhost:8000
+- Verificar API: http://localhost:3000/api/publicaciones
+
+## Primeros Pasos
+
+### 6.1 Crear tu usuario
+
+1. Ve a http://localhost:8000
+2. En la sección "REGISTRO":
+   - Email: tunombre@usa.edu.co (DEBE terminar en @usa.edu.co)
+   - Usuario: tu nombre
+   - Contraseña: mínimo 5 caracteres
+3. Clic en "Registrarse"
+4. Ahora puedes hacer "Iniciar Sesión"
+
+### 6.2 Probar funcionalidades
+
+1. Foro: Crear posts, votar (▲▼), comentar
+2. Publicaciones: Ver 3 anuncios de ejemplo
+3. Tickets: Crear solicitudes a secretaría
+4. Forgot Password: Probar recuperación de contraseña
