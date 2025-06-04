@@ -139,8 +139,52 @@ class ApiClient {
   // MÉTODOS DE POSTS
   // ==================
 
+  // ✅ MÉTODO getPosts ACTUALIZADO en api-client.js
+  // Reemplaza la función getPosts existente en tu archivo api-client.js
+
   async getPosts(page = 1, limit = 20) {
-    return await this.request(`/posts?page=${page}&limit=${limit}`);
+    console.log(`📡 Solicitando posts - Página: ${page}, Límite: ${limit}`);
+
+    try {
+      const response = await this.request(`/posts?page=${page}&limit=${limit}`);
+
+      // ✅ COMPATIBILIDAD: Si el servidor devuelve el formato nuevo, usarlo
+      if (response.posts && response.pagination) {
+        console.log(
+          `✅ Formato nuevo recibido: ${response.posts.length} posts, hasMore: ${response.pagination.hasMore}`
+        );
+        return response;
+      }
+
+      // ✅ COMPATIBILIDAD: Si el servidor devuelve el formato anterior (array directo)
+      if (Array.isArray(response)) {
+        console.log(`⚠️ Formato anterior detectado: ${response.length} posts`);
+        return {
+          posts: response,
+          pagination: {
+            currentPage: page,
+            totalPosts: response.length,
+            hasMore: response.length >= limit, // Asumir que hay más si devuelve el límite completo
+            postsPerPage: limit,
+          },
+        };
+      }
+
+      // ✅ FALLBACK: Si no es ninguno de los anteriores
+      console.warn("⚠️ Formato de respuesta no reconocido:", response);
+      return {
+        posts: [],
+        pagination: {
+          currentPage: page,
+          totalPosts: 0,
+          hasMore: false,
+          postsPerPage: limit,
+        },
+      };
+    } catch (error) {
+      console.error("❌ Error en getPosts:", error);
+      throw error;
+    }
   }
 
   async createPost(formData) {
@@ -249,6 +293,47 @@ class ApiClient {
     return await this.request(`/tickets/${ticketId}/responses`);
   }
 
+  // ✅ AGREGAR ESTE MÉTODO AL API CLIENT (frontend/js/api-client.js)
+  // Agregar en la sección "MÉTODOS DE TICKETS"
+
+  async getTicketsWithFilters(filtros = {}, page = 1, limit = 50) {
+    const params = new URLSearchParams();
+
+    // Agregar filtros solo si no son "todos"
+    if (filtros.estado && filtros.estado !== "todos") {
+      params.append("estado", filtros.estado);
+    }
+    if (filtros.tema && filtros.tema !== "todos") {
+      params.append("tema", filtros.tema);
+    }
+    if (filtros.prioridad && filtros.prioridad !== "todos") {
+      params.append("prioridad", filtros.prioridad);
+    }
+
+    // Agregar paginación
+    params.append("page", page);
+    params.append("limit", limit);
+
+    const endpoint = `/tickets?${params.toString()}`;
+
+    console.log("🔍 Solicitando tickets con filtros:", filtros);
+    console.log("📡 Endpoint:", endpoint);
+
+    try {
+      const response = await this.request(endpoint);
+
+      console.log("✅ Respuesta recibida:", {
+        tickets: response.tickets?.length || 0,
+        filtros: response.filtros_aplicados,
+        estadisticas: response.estadisticas ? "Incluidas" : "No incluidas",
+      });
+
+      return response;
+    } catch (error) {
+      console.error("❌ Error obteniendo tickets con filtros:", error);
+      throw error;
+    }
+  }
   // ==================
   // MÉTODOS DE PUBLICACIONES
   // ==================

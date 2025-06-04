@@ -1,7 +1,8 @@
-// js/foro.js - Sistema de votación corregido y mejorado
+// js/foro.js - Sistema de votación y paginación corregidos
 
 let currentPage = 1;
 let isLoading = false;
+let hasMorePosts = true; // ✅ NUEVA VARIABLE para controlar si hay más posts
 
 document.addEventListener("DOMContentLoaded", async () => {
   // Verificar autenticación
@@ -22,28 +23,76 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function cargarPosts() {
-  if (isLoading) return;
+  if (isLoading || !hasMorePosts) {
+    console.log(
+      `⚠️ No se puede cargar: isLoading=${isLoading}, hasMorePosts=${hasMorePosts}`
+    );
+    return;
+  }
+
   isLoading = true;
+  console.log(`📄 Cargando página ${currentPage}...`);
 
   try {
-    const posts = await apiClient.getPosts(currentPage);
+    // ✅ OBTENER RESPUESTA CON PAGINACIÓN
+    const response = await apiClient.getPosts(currentPage);
+
+    // ✅ MANEJAR NUEVA ESTRUCTURA DE RESPUESTA
+    const posts = response.posts || response; // Compatibilidad con versión antigua
+    const pagination = response.pagination;
+
     const foroLista = document.getElementById("foro-lista");
 
     if (currentPage === 1) {
-      foroLista.innerHTML = ""; // Limpiar en primera carga
+      foroLista.innerHTML = ""; // Limpiar solo en primera carga
     }
 
-    posts.forEach((post) => {
-      const postElement = crearPostElement(post);
-      foroLista.appendChild(postElement);
-    });
+    if (posts.length === 0) {
+      if (currentPage === 1) {
+        foroLista.innerHTML =
+          '<div class="text-center text-gray-500 py-8">No hay publicaciones disponibles</div>';
+      }
+      hasMorePosts = false;
+      console.log("📭 No hay más posts para cargar");
+    } else {
+      posts.forEach((post) => {
+        const postElement = crearPostElement(post);
+        foroLista.appendChild(postElement);
+      });
 
-    currentPage++;
+      currentPage++;
+
+      // ✅ ACTUALIZAR hasMorePosts basado en la respuesta del servidor
+      if (pagination) {
+        hasMorePosts = pagination.hasMore;
+        console.log(
+          `📊 Paginación: ${pagination.currentPage}/${Math.ceil(
+            pagination.totalPosts / pagination.postsPerPage
+          )}, hasMore: ${hasMorePosts}`
+        );
+      } else {
+        // Método alternativo: si devuelve menos posts del límite, no hay más
+        hasMorePosts = posts.length >= 20;
+      }
+    }
+
+    // ✅ MOSTRAR/OCULTAR BOTÓN "CARGAR MÁS"
+    const loadMoreBtn = document.getElementById("load-more");
+    if (loadMoreBtn) {
+      if (hasMorePosts && posts.length > 0) {
+        loadMoreBtn.style.display = "block";
+      } else {
+        loadMoreBtn.style.display = "none";
+      }
+    }
+
     console.log(
-      `✅ Cargados ${posts.length} posts, página actual: ${currentPage - 1}`
+      `✅ Cargados ${posts.length} posts. Página actual: ${
+        currentPage - 1
+      }. ¿Hay más?: ${hasMorePosts}`
     );
   } catch (error) {
-    console.error("Error cargando posts:", error);
+    console.error("❌ Error cargando posts:", error);
     alert("Error cargando posts: " + error.message);
   } finally {
     isLoading = false;
@@ -75,8 +124,9 @@ async function publicarPost() {
     preguntaInput.value = "";
     imagenInput.value = "";
 
-    // Recargar posts
+    // ✅ RESETEAR PAGINACIÓN COMPLETAMENTE
     currentPage = 1;
+    hasMorePosts = true;
     await cargarPosts();
 
     console.log("✅ Post publicado exitosamente");
@@ -85,13 +135,45 @@ async function publicarPost() {
   }
 }
 
+function cargarMasPosts() {
+  if (!isLoading && hasMorePosts) {
+    console.log("🔄 Scroll detectado, cargando más posts...");
+    cargarPosts();
+  } else {
+    console.log(
+      `⚠️ No se puede cargar más: isLoading=${isLoading}, hasMorePosts=${hasMorePosts}`
+    );
+  }
+}
+
+// ✅ MEJORAR EL EVENT LISTENER DE SCROLL
+let scrollTimeout;
+window.addEventListener("scroll", () => {
+  // ✅ DEBOUNCE para evitar múltiples llamadas
+  clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    // ✅ VERIFICAR si estamos cerca del final Y si hay más posts
+    if (hasMorePosts && !isLoading) {
+      const scrollPosition = window.innerHeight + window.scrollY;
+      const documentHeight = document.body.offsetHeight;
+      const threshold = 1000; // 1000px antes del final
+
+      if (scrollPosition >= documentHeight - threshold) {
+        console.log("📄 Cerca del final, intentando cargar más posts...");
+        cargarMasPosts();
+      }
+    }
+  }, 150); // Esperar 150ms después del último scroll
+});
+
+// ✅ RESTO DEL CÓDIGO SIN CAMBIOS (crearPostElement, votarPost, etc.)
 function crearPostElement(post) {
   const postDiv = document.createElement("div");
   postDiv.className = "post";
   postDiv.setAttribute("data-post-id", post.id);
-  postDiv.setAttribute("data-voting", "false"); // ✅ Estado de votación
+  postDiv.setAttribute("data-voting", "false");
 
-  // ✅ COLUMNA DE VOTOS ESTILO REDDIT CORREGIDA
+  // Columna de votos
   const votesDiv = document.createElement("div");
   votesDiv.className = "votes";
 
@@ -104,7 +186,6 @@ function crearPostElement(post) {
   btnUp.setAttribute("data-tipo", "positivo");
   btnUp.setAttribute("title", "Votar positivo");
 
-  // ✅ Aplicar estilo según voto del usuario
   if (post.voto_usuario === "positivo") {
     btnUp.classList.add("text-orange-500", "font-bold", "bg-orange-50");
     btnUp.setAttribute("title", "Quitar voto positivo");
@@ -112,30 +193,20 @@ function crearPostElement(post) {
     btnUp.classList.add("text-gray-400", "hover:text-orange-500");
   }
 
-  // ✅ Event listener con protección anti-spam
   btnUp.onclick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-
-    // Verificar si ya se está votando
     if (postDiv.dataset.voting === "true") {
       console.log("⚠️ Ya se está procesando un voto");
       return;
     }
-
     votarPost(post.id, "positivo", postDiv);
   };
 
-  // Score/Puntuación
+  // Score
   const scoreDiv = document.createElement("div");
   scoreDiv.className = "score text-lg font-bold text-gray-700 py-1 text-center";
   scoreDiv.textContent = post.score || 0;
-  scoreDiv.setAttribute(
-    "title",
-    `${post.votos_positivos || 0} votos positivos, ${
-      post.votos_negativos || 0
-    } votos negativos`
-  );
 
   // Botón downvote
   const btnDown = document.createElement("button");
@@ -146,7 +217,6 @@ function crearPostElement(post) {
   btnDown.setAttribute("data-tipo", "negativo");
   btnDown.setAttribute("title", "Votar negativo");
 
-  // ✅ Aplicar estilo según voto del usuario
   if (post.voto_usuario === "negativo") {
     btnDown.classList.add("text-blue-500", "font-bold", "bg-blue-50");
     btnDown.setAttribute("title", "Quitar voto negativo");
@@ -154,17 +224,13 @@ function crearPostElement(post) {
     btnDown.classList.add("text-gray-400", "hover:text-blue-500");
   }
 
-  // ✅ Event listener con protección anti-spam
   btnDown.onclick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-
-    // Verificar si ya se está votando
     if (postDiv.dataset.voting === "true") {
       console.log("⚠️ Ya se está procesando un voto");
       return;
     }
-
     votarPost(post.id, "negativo", postDiv);
   };
 
@@ -179,7 +245,6 @@ function crearPostElement(post) {
   const textDiv = document.createElement("div");
   textDiv.className = "text";
   textDiv.textContent = post.titulo || post.contenido;
-
   contentDiv.appendChild(textDiv);
 
   // Imagen si existe
@@ -204,7 +269,6 @@ function crearPostElement(post) {
     minute: "2-digit",
   });
 
-  // ✅ Mostrar información de votos en metadata
   const votosInfo =
     (post.votos_positivos || 0) + (post.votos_negativos || 0) > 0
       ? ` • ▲ ${post.votos_positivos || 0} ▼ ${post.votos_negativos || 0}`
@@ -254,9 +318,8 @@ function crearPostElement(post) {
   return postDiv;
 }
 
-// ✅ FUNCIÓN DE VOTACIÓN COMPLETAMENTE CORREGIDA
+// ✅ FUNCIÓN DE VOTACIÓN (sin cambios)
 async function votarPost(postId, tipo, postElement) {
-  // Prevenir múltiples votos simultáneos
   if (postElement.dataset.voting === "true") {
     console.log("⚠️ Ya se está procesando un voto, ignorando...");
     return;
@@ -264,53 +327,34 @@ async function votarPost(postId, tipo, postElement) {
 
   try {
     console.log("🗳️ Iniciando votación:", { postId, tipo });
-
-    // Marcar como "votando" para prevenir clics múltiples
     postElement.dataset.voting = "true";
 
-    // Obtener elementos de la UI
     const btnUp = postElement.querySelector(".upvote");
     const btnDown = postElement.querySelector(".downvote");
     const scoreElement = postElement.querySelector(".score");
 
-    // Deshabilitar botones y mostrar loading
     btnUp.disabled = true;
     btnDown.disabled = true;
     btnUp.style.pointerEvents = "none";
     btnDown.style.pointerEvents = "none";
 
-    // Mostrar estado de carga
     const originalScore = scoreElement.textContent;
     scoreElement.textContent = "...";
     scoreElement.classList.add("animate-pulse");
 
-    // ✅ Llamar a la API de votación
     const response = await apiClient.votePost(postId, tipo);
-
     console.log("✅ Respuesta de votación:", response);
 
-    // ✅ Actualizar UI según respuesta
     actualizarUIVoto(postElement, response.votoUsuario, response.nuevoScore);
-
-    // ✅ Mostrar feedback visual
     mostrarFeedbackVoto(scoreElement, originalScore, response.nuevoScore);
-
-    // Mostrar mensaje de éxito
     mostrarMensajeVoto(response.message);
   } catch (error) {
     console.error("❌ Error al votar:", error);
-
-    // Restaurar UI en caso de error
     restaurarUIError(postElement);
-
-    // Mostrar error al usuario
     mostrarMensajeError("Error al votar: " + error.message);
   } finally {
-    // ✅ Limpiar estado de votación después de un delay
     setTimeout(() => {
       postElement.dataset.voting = "false";
-
-      // Rehabilitar botones
       const btnUp = postElement.querySelector(".upvote");
       const btnDown = postElement.querySelector(".downvote");
       const scoreElement = postElement.querySelector(".score");
@@ -322,23 +366,21 @@ async function votarPost(postId, tipo, postElement) {
         btnDown.style.pointerEvents = "auto";
         scoreElement.classList.remove("animate-pulse");
       }
-    }, 500); // Delay de 500ms para prevenir spam
+    }, 500);
   }
 }
 
-// ✅ FUNCIÓN: Actualizar UI según el voto
+// ✅ FUNCIONES AUXILIARES (sin cambios significativos)
 function actualizarUIVoto(postElement, votoUsuario, nuevoScore) {
   const btnUp = postElement.querySelector(".upvote");
   const btnDown = postElement.querySelector(".downvote");
   const scoreElement = postElement.querySelector(".score");
 
-  // Limpiar estilos anteriores
   btnUp.className =
     "upvote text-2xl transition-colors duration-200 p-1 rounded hover:bg-gray-100";
   btnDown.className =
     "downvote text-2xl transition-colors duration-200 p-1 rounded hover:bg-gray-100";
 
-  // Aplicar nuevos estilos según el voto actual
   if (votoUsuario === "positivo") {
     btnUp.classList.add("text-orange-500", "font-bold", "bg-orange-50");
     btnDown.classList.add("text-gray-400", "hover:text-blue-500");
@@ -350,23 +392,19 @@ function actualizarUIVoto(postElement, votoUsuario, nuevoScore) {
     btnUp.setAttribute("title", "Votar positivo");
     btnDown.setAttribute("title", "Quitar voto negativo");
   } else {
-    // No hay voto
     btnUp.classList.add("text-gray-400", "hover:text-orange-500");
     btnDown.classList.add("text-gray-400", "hover:text-blue-500");
     btnUp.setAttribute("title", "Votar positivo");
     btnDown.setAttribute("title", "Votar negativo");
   }
 
-  // Actualizar score
   scoreElement.textContent = nuevoScore;
 }
 
-// ✅ FUNCIÓN: Mostrar feedback visual del voto
 function mostrarFeedbackVoto(scoreElement, scoreAnterior, scoreNuevo) {
   const scoreNumAnterior = parseInt(scoreAnterior) || 0;
   const scoreNumNuevo = parseInt(scoreNuevo) || 0;
 
-  // Animación según el cambio
   scoreElement.classList.add(
     "scale-110",
     "transition-transform",
@@ -393,7 +431,6 @@ function mostrarFeedbackVoto(scoreElement, scoreAnterior, scoreNuevo) {
   }, 500);
 }
 
-// ✅ FUNCIÓN: Restaurar UI en caso de error
 function restaurarUIError(postElement) {
   const scoreElement = postElement.querySelector(".score");
   const btnUp = postElement.querySelector(".upvote");
@@ -412,9 +449,7 @@ function restaurarUIError(postElement) {
   btnDown.style.pointerEvents = "auto";
 }
 
-// ✅ FUNCIÓN: Mostrar mensaje de éxito
 function mostrarMensajeVoto(mensaje) {
-  // Eliminar mensaje anterior si existe
   const existingMsg = document.querySelector(".vote-message");
   if (existingMsg) existingMsg.remove();
 
@@ -430,7 +465,6 @@ function mostrarMensajeVoto(mensaje) {
 
   document.body.appendChild(msgDiv);
 
-  // Eliminar después de 2 segundos
   setTimeout(() => {
     msgDiv.style.opacity = "0";
     msgDiv.style.transform = "translateX(100%)";
@@ -438,7 +472,6 @@ function mostrarMensajeVoto(mensaje) {
   }, 2000);
 }
 
-// ✅ FUNCIÓN: Mostrar mensaje de error
 function mostrarMensajeError(mensaje) {
   const existingMsg = document.querySelector(".error-message");
   if (existingMsg) existingMsg.remove();
@@ -461,16 +494,12 @@ function mostrarMensajeError(mensaje) {
   }, 3000);
 }
 
-// ==================
-// FUNCIONES DE COMENTARIOS (sin cambios)
-// ==================
-
+// ✅ FUNCIONES DE COMENTARIOS (sin cambios)
 async function toggleComentarios(postId) {
   const comentariosDiv = document.getElementById(`comentarios-${postId}`);
 
   if (comentariosDiv.classList.contains("hidden")) {
     try {
-      // Mostrar loading
       const listaDiv = comentariosDiv.querySelector(".lista-comentarios");
       listaDiv.innerHTML =
         '<div class="text-center text-gray-500 py-2">Cargando comentarios...</div>';
@@ -540,7 +569,6 @@ async function agregarComentario(event, postId) {
   }
 
   try {
-    // Deshabilitar input temporalmente
     input.disabled = true;
     const submitBtn = event.target.querySelector("button");
     const originalText = submitBtn.textContent;
@@ -549,18 +577,16 @@ async function agregarComentario(event, postId) {
 
     await apiClient.createComment(postId, contenido);
 
-    // Limpiar input
     input.value = "";
 
-    // Recargar comentarios
     const comentariosDiv = document.getElementById(`comentarios-${postId}`);
     comentariosDiv.classList.add("hidden");
     await toggleComentarios(postId);
 
-    // Actualizar contador de comentarios en el post
     setTimeout(async () => {
       try {
         currentPage = 1;
+        hasMorePosts = true;
         await cargarPosts();
       } catch (error) {
         console.error("Error actualizando posts:", error);
@@ -572,7 +598,6 @@ async function agregarComentario(event, postId) {
     console.error("Error agregando comentario:", error);
     alert("Error agregando comentario: " + error.message);
   } finally {
-    // Rehabilitar input
     input.disabled = false;
     const submitBtn = event.target.querySelector("button");
     submitBtn.textContent = "Comentar";
@@ -580,26 +605,10 @@ async function agregarComentario(event, postId) {
   }
 }
 
-function cargarMasPosts() {
-  if (!isLoading) {
-    cargarPosts();
-  }
-}
-
 function cerrarSesion() {
   apiClient.logout();
 }
 
-// Evento para detectar scroll y cargar más posts
-window.addEventListener("scroll", () => {
-  if (
-    window.innerHeight + window.scrollY >=
-    document.body.offsetHeight - 1000
-  ) {
-    cargarMasPosts();
-  }
-});
-
-console.log("🚀 Sistema de foro con votaciones corregido cargado exitosamente");
-console.log("🗳️ Protección anti-spam: ✅");
-console.log("🎨 UI de votaciones mejorada: ✅");
+console.log("🚀 Sistema de foro con paginación corregida cargado exitosamente");
+console.log("📄 Scroll infinito controlado: ✅");
+console.log("🗳️ Sistema de votaciones: ✅");

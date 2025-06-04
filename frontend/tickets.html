@@ -225,7 +225,7 @@
             </div>
           </section>
 
-          <!-- 👑 PANEL PARA ADMINS -->
+          <!-- 👑 PANEL PARA ADMINS CON FILTRADO AVANZADO -->
           <section id="admin-tickets-panel" class="hidden mb-8">
             <div
               class="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg shadow-lg"
@@ -234,14 +234,17 @@
                 <div class="flex items-center mb-4">
                   <span class="text-3xl mr-3">👑</span>
                   <div>
-                    <h2 class="text-2xl font-bold">Panel de Administración</h2>
+                    <h2 class="text-2xl font-bold">
+                      Panel de Administración de Tickets
+                    </h2>
                     <p class="text-purple-100">
-                      Control total del sistema de tickets
+                      Control total del sistema de solicitudes estudiantiles
                     </p>
                   </div>
                 </div>
 
                 <div class="bg-white rounded-lg p-6 text-gray-800">
+                  <!-- ✅ ESTADÍSTICAS GENERALES -->
                   <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <div class="bg-green-50 p-4 rounded-lg text-center">
                       <div
@@ -281,44 +284,227 @@
                     </div>
                   </div>
 
+                  <!-- ✅ PANEL DE FILTROS AVANZADOS -->
+                  <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h4 class="font-semibold text-lg mb-4 flex items-center">
+                      <span class="mr-2">🔍</span>
+                      Filtros Avanzados
+                    </h4>
+
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <!-- Filtro por Estado -->
+                      <div>
+                        <label
+                          class="block text-sm font-medium text-gray-700 mb-2"
+                          >Estado</label
+                        >
+                        <select
+                          id="filtro-estado"
+                          class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="todos">📋 Todos los estados</option>
+                          <option value="abierto">🟢 Abiertos</option>
+                          <option value="en_proceso">🟡 En Proceso</option>
+                          <option value="cerrado">🔴 Cerrados</option>
+                        </select>
+                      </div>
+
+                      <!-- ✅ FILTRO POR CATEGORÍA/TEMA -->
+                      <div>
+                        <label
+                          class="block text-sm font-medium text-gray-700 mb-2"
+                          >Categoría</label
+                        >
+                        <select
+                          id="filtro-tema"
+                          class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="todos">📂 Todas las categorías</option>
+                          <option value="materia">
+                            📚 Materias y Horarios
+                          </option>
+                          <option value="practicas">
+                            🔬 Prácticas Profesionales
+                          </option>
+                          <option value="certificados">
+                            📄 Certificados y Documentos
+                          </option>
+                          <option value="matricula">
+                            🎓 Matrícula y Pagos
+                          </option>
+                          <option value="notas">
+                            📊 Notas y Calificaciones
+                          </option>
+                          <option value="tramites">
+                            📋 Trámites Administrativos
+                          </option>
+                          <option value="becas">💰 Becas y Ayudas</option>
+                          <option value="otro">❓ Otro</option>
+                        </select>
+                      </div>
+
+                      <!-- Filtro por Prioridad -->
+                      <div>
+                        <label
+                          class="block text-sm font-medium text-gray-700 mb-2"
+                          >Prioridad</label
+                        >
+                        <select
+                          id="filtro-prioridad"
+                          class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="todos">
+                            ⚡ Todas las prioridades
+                          </option>
+                          <option value="alta">🔴 Alta</option>
+                          <option value="media">🟡 Media</option>
+                          <option value="baja">🟢 Baja</option>
+                        </select>
+                      </div>
+
+                      <!-- Botón de aplicar filtros -->
+                      <div class="flex items-end">
+                        <button
+                          onclick="aplicarFiltros()"
+                          class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors"
+                        >
+                          🔍 Filtrar
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- ✅ BOTONES DE FILTRO RÁPIDO POR CATEGORÍA -->
+                    <div class="mt-4 pt-4 border-t border-gray-200">
+                      <h5 class="text-sm font-medium text-gray-700 mb-3">
+                        Filtros Rápidos por Categoría:
+                      </h5>
+                      <div class="flex flex-wrap gap-2">
+                        <button
+                          onclick="filtroRapidoTema('todos')"
+                          class="px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded text-sm transition-colors"
+                          id="btn-tema-todos"
+                        >
+                          📂 Todas
+                        </button>
+                        <button
+                          onclick="filtroRapidoTema('materia')"
+                          class="px-3 py-1 bg-blue-100 hover:bg-blue-200 rounded text-sm transition-colors"
+                          id="btn-tema-materia"
+                        >
+                          📚 Materias
+                        </button>
+                        <button
+                          onclick="filtroRapidoTema('certificados')"
+                          class="px-3 py-1 bg-green-100 hover:bg-green-200 rounded text-sm transition-colors"
+                          id="btn-tema-certificados"
+                        >
+                          📄 Certificados
+                        </button>
+                        <button
+                          onclick="filtroRapidoTema('matricula')"
+                          class="px-3 py-1 bg-yellow-100 hover:bg-yellow-200 rounded text-sm transition-colors"
+                          id="btn-tema-matricula"
+                        >
+                          🎓 Matrícula
+                        </button>
+                        <button
+                          onclick="filtroRapidoTema('notas')"
+                          class="px-3 py-1 bg-purple-100 hover:bg-purple-200 rounded text-sm transition-colors"
+                          id="btn-tema-notas"
+                        >
+                          📊 Notas
+                        </button>
+                        <button
+                          onclick="filtroRapidoTema('practicas')"
+                          class="px-3 py-1 bg-red-100 hover:bg-red-200 rounded text-sm transition-colors"
+                          id="btn-tema-practicas"
+                        >
+                          🔬 Prácticas
+                        </button>
+                        <button
+                          onclick="filtroRapidoTema('tramites')"
+                          class="px-3 py-1 bg-indigo-100 hover:bg-indigo-200 rounded text-sm transition-colors"
+                          id="btn-tema-tramites"
+                        >
+                          📋 Trámites
+                        </button>
+                        <button
+                          onclick="filtroRapidoTema('becas')"
+                          class="px-3 py-1 bg-orange-100 hover:bg-orange-200 rounded text-sm transition-colors"
+                          id="btn-tema-becas"
+                        >
+                          💰 Becas
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- ✅ INDICADOR DE FILTROS ACTIVOS -->
+                    <div
+                      id="filtros-activos"
+                      class="mt-4 pt-4 border-t border-gray-200 hidden"
+                    >
+                      <h5 class="text-sm font-medium text-gray-700 mb-2">
+                        Filtros Activos:
+                      </h5>
+                      <div
+                        id="lista-filtros-activos"
+                        class="flex flex-wrap gap-2"
+                      >
+                        <!-- Los filtros activos se muestran aquí -->
+                      </div>
+                      <button
+                        onclick="limpiarFiltros()"
+                        class="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                      >
+                        ❌ Limpiar todos los filtros
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- ✅ ESTADÍSTICAS POR CATEGORÍA -->
+                  <div
+                    id="estadisticas-categorias"
+                    class="bg-blue-50 rounded-lg p-4 mb-6 hidden"
+                  >
+                    <h4 class="font-semibold text-lg mb-4 flex items-center">
+                      <span class="mr-2">📊</span>
+                      Estadísticas por Categoría
+                    </h4>
+                    <div
+                      id="stats-por-categoria"
+                      class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3"
+                    >
+                      <!-- Las estadísticas se cargan aquí dinámicamente -->
+                    </div>
+                  </div>
+
+                  <!-- ✅ INFORMACIÓN Y CONTROLES -->
                   <div class="flex justify-between items-center mb-4">
                     <h3 class="text-xl font-semibold">📋 Gestión de Tickets</h3>
                     <div class="flex space-x-2">
                       <button
-                        onclick="filtrarTickets('todos')"
-                        class="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
-                        id="btn-admin-todos"
+                        onclick="exportarTickets()"
+                        class="px-3 py-1 bg-green-500 text-white rounded text-sm hover:bg-green-600 transition-colors"
                       >
-                        Todos
+                        📊 Exportar
                       </button>
                       <button
-                        onclick="filtrarTickets('abierto')"
-                        class="px-3 py-1 bg-green-200 rounded text-sm hover:bg-green-300"
-                        id="btn-admin-abiertos"
+                        onclick="cargarTickets()"
+                        class="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600 transition-colors"
                       >
-                        Abiertos
-                      </button>
-                      <button
-                        onclick="filtrarTickets('en_proceso')"
-                        class="px-3 py-1 bg-yellow-200 rounded text-sm hover:bg-yellow-300"
-                        id="btn-admin-proceso"
-                      >
-                        En Proceso
-                      </button>
-                      <button
-                        onclick="filtrarTickets('cerrado')"
-                        class="px-3 py-1 bg-red-200 rounded text-sm hover:bg-red-300"
-                        id="btn-admin-cerrados"
-                      >
-                        Cerrados
+                        🔄 Actualizar
                       </button>
                     </div>
                   </div>
 
                   <div class="text-sm text-gray-600 mb-4">
                     <p>
-                      <strong>💡 Instrucciones:</strong> Haz clic en cualquier
-                      ticket para ver detalles, responder y cambiar estado.
+                      <strong>💡 Instrucciones:</strong> Usa los filtros para
+                      organizar tickets por categoría y estado. Haz clic en
+                      cualquier ticket para ver detalles y responder.
+                    </p>
+                    <p class="mt-1" id="resultados-info">
+                      Mostrando todos los tickets...
                     </p>
                   </div>
                 </div>
@@ -385,7 +571,7 @@
       </main>
     </div>
 
-    <!-- ✅ MODAL PARA VER/RESPONDER TICKET (RESTAURADO) -->
+    <!-- ✅ MODAL PARA VER/RESPONDER TICKET -->
     <div
       id="ticket-modal"
       class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
@@ -460,6 +646,15 @@
       let currentFilter = "todos";
       let allTickets = [];
       let currentTicketId = null;
+
+      // ✅ NUEVAS VARIABLES PARA FILTRADO AVANZADO
+      let currentFilters = {
+        estado: "todos",
+        tema: "todos",
+        prioridad: "todos",
+      };
+      let currentPage = 1;
+      let estadisticasGenerales = null;
 
       document.addEventListener("DOMContentLoaded", async () => {
         console.log("🚀 Iniciando sistema de tickets...");
@@ -584,60 +779,59 @@
         }
       }
 
-      async function crearTicket() {
-        const titulo = document.getElementById("titulo").value.trim() || null;
-        const tema = document.getElementById("tema").value.trim();
-        const mensaje = document.getElementById("mensaje").value.trim();
+      // ==================
+      // ✅ SISTEMA DE FILTRADO AVANZADO
+      // ==================
 
-        if (!tema) {
-          mostrarMensajeForm("❌ Debes seleccionar un tema", "error");
-          return;
-        }
+      async function aplicarFiltros() {
+        // Obtener valores de los selectores
+        currentFilters.estado =
+          document.getElementById("filtro-estado")?.value || "todos";
+        currentFilters.tema =
+          document.getElementById("filtro-tema")?.value || "todos";
+        currentFilters.prioridad =
+          document.getElementById("filtro-prioridad")?.value || "todos";
 
-        if (!mensaje) {
-          mostrarMensajeForm("❌ El mensaje es requerido", "error");
-          return;
-        }
+        console.log("🔍 Aplicando filtros:", currentFilters);
 
-        try {
-          mostrarMensajeForm("🔄 Enviando solicitud...", "info");
+        // Resetear página
+        currentPage = 1;
 
-          const ticketData = {
-            titulo: titulo || `Solicitud sobre ${getTemaNombre(tema)}`,
-            mensaje: `[${getTemaNombre(tema)}] ${mensaje}`,
-            tema: tema,
-          };
+        // Cargar tickets con filtros
+        await cargarTicketsConFiltros();
 
-          await apiClient.createTicket(ticketData);
+        // Actualizar UI de filtros activos
+        mostrarFiltrosActivos();
 
-          mostrarMensajeForm("✅ Solicitud enviada exitosamente", "success");
-
-          document.getElementById("titulo").value = "";
-          document.getElementById("tema").value = "";
-          document.getElementById("mensaje").value = "";
-
-          await cargarTickets();
-        } catch (error) {
-          console.error("❌ Error creando ticket:", error);
-          mostrarMensajeForm(`❌ Error: ${error.message}`, "error");
-        }
+        // Scroll al inicio de la lista
+        document
+          .getElementById("ticket-lista")
+          ?.scrollIntoView({ behavior: "smooth" });
       }
 
-      function getTemaNombre(valor) {
-        const temas = {
-          materia: "Materias y Horarios",
-          practicas: "Prácticas Profesionales",
-          certificados: "Certificados y Documentos",
-          matricula: "Matrícula y Pagos",
-          notas: "Notas y Calificaciones",
-          tramites: "Trámites Administrativos",
-          becas: "Becas y Ayudas",
-          otro: "Otro",
-        };
-        return temas[valor] || valor;
+      async function filtroRapidoTema(tema) {
+        console.log("⚡ Filtro rápido por tema:", tema);
+
+        // Actualizar selector y filtro actual
+        const selectorTema = document.getElementById("filtro-tema");
+        if (selectorTema) {
+          selectorTema.value = tema;
+        }
+        currentFilters.tema = tema;
+
+        // Resetear página
+        currentPage = 1;
+
+        // Aplicar filtro
+        await cargarTicketsConFiltros();
+        mostrarFiltrosActivos();
+
+        // Actualizar botones de filtro rápido
+        actualizarBotonesFiltroRapido(tema);
       }
 
-      async function cargarTickets() {
+      // ✅ TAMBIÉN CORREGIR cargarTicketsConFiltros
+      async function cargarTicketsConFiltros() {
         const loadingElement = document.getElementById("loading-tickets");
         const listaElement = document.getElementById("ticket-lista");
 
@@ -645,16 +839,63 @@
           if (loadingElement) loadingElement.style.display = "block";
           if (listaElement) listaElement.innerHTML = "";
 
-          const tickets = await apiClient.getTickets();
+          console.log("🔍 Solicitando tickets con filtros:", currentFilters);
+
+          // ✅ LLAMAR API CON FILTROS
+          const response = await apiClient.getTicketsWithFilters(
+            currentFilters,
+            currentPage
+          );
+
+          console.log("📡 Respuesta completa de la API:", response);
+
+          // ✅ VALIDAR Y EXTRAER TICKETS DE LA RESPUESTA
+          let tickets = [];
+
+          if (response && response.tickets && Array.isArray(response.tickets)) {
+            tickets = response.tickets;
+            console.log(
+              "✅ Formato nuevo: encontrados",
+              tickets.length,
+              "tickets"
+            );
+          } else if (Array.isArray(response)) {
+            tickets = response;
+            console.log(
+              "✅ Formato anterior: encontrados",
+              tickets.length,
+              "tickets"
+            );
+          } else {
+            console.error("❌ Respuesta en formato inesperado:", response);
+            tickets = [];
+          }
+
           allTickets = tickets;
-          console.log(`✅ ${tickets.length} tickets cargados`);
+          const pagination = response.pagination;
+          estadisticasGenerales = response.estadisticas;
+
+          console.log(
+            `✅ ${tickets.length} tickets procesados con filtros:`,
+            currentFilters
+          );
 
           if (loadingElement) loadingElement.style.display = "none";
 
-          actualizarContadores(tickets);
+          // Actualizar contadores y estadísticas
+          if (estadisticasGenerales) {
+            actualizarContadoresYEstadisticas(estadisticasGenerales);
+          } else {
+            actualizarContadores(tickets);
+          }
+
+          // Mostrar tickets (ya con validación)
           mostrarTickets(tickets);
+
+          // Actualizar información de resultados
+          actualizarInfoResultados(tickets.length, currentFilters);
         } catch (error) {
-          console.error("❌ Error cargando tickets:", error);
+          console.error("❌ Error cargando tickets con filtros:", error);
           if (loadingElement) loadingElement.style.display = "none";
           if (listaElement) {
             listaElement.innerHTML = `<div class="text-center text-red-500 py-8">Error: ${error.message}</div>`;
@@ -662,8 +903,442 @@
         }
       }
 
+      // ✅ ACTUALIZAR API CLIENT - Método para obtener tickets con filtros
+      apiClient.getTicketsWithFilters = async function (
+        filtros = {},
+        page = 1
+      ) {
+        const params = new URLSearchParams();
+
+        if (filtros.estado && filtros.estado !== "todos") {
+          params.append("estado", filtros.estado);
+        }
+        if (filtros.tema && filtros.tema !== "todos") {
+          params.append("tema", filtros.tema);
+        }
+        if (filtros.prioridad && filtros.prioridad !== "todos") {
+          params.append("prioridad", filtros.prioridad);
+        }
+
+        params.append("page", page);
+        params.append("limit", 50);
+
+        const url = `${this.baseURL}/tickets?${params.toString()}`;
+
+        try {
+          const response = await fetch(url, {
+            headers: {
+              Authorization: `Bearer ${this.sessionId}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          return await response.json();
+        } catch (error) {
+          console.error("❌ Error en getTicketsWithFilters:", error);
+          throw error;
+        }
+      };
+
+      function mostrarFiltrosActivos() {
+        const filtrosActivosDiv = document.getElementById("filtros-activos");
+        const listaFiltrosDiv = document.getElementById(
+          "lista-filtros-activos"
+        );
+
+        if (!filtrosActivosDiv || !listaFiltrosDiv) return;
+
+        const filtrosActivos = [];
+
+        if (currentFilters.estado !== "todos") {
+          filtrosActivos.push({
+            tipo: "estado",
+            valor: currentFilters.estado,
+            texto: getEstadoNombre(currentFilters.estado),
+            color: "bg-blue-100 text-blue-800",
+          });
+        }
+
+        if (currentFilters.tema !== "todos") {
+          filtrosActivos.push({
+            tipo: "tema",
+            valor: currentFilters.tema,
+            texto: getTemaNombre(currentFilters.tema),
+            color: "bg-green-100 text-green-800",
+          });
+        }
+
+        if (currentFilters.prioridad !== "todos") {
+          filtrosActivos.push({
+            tipo: "prioridad",
+            valor: currentFilters.prioridad,
+            texto: getPrioridadNombre(currentFilters.prioridad),
+            color: "bg-yellow-100 text-yellow-800",
+          });
+        }
+
+        if (filtrosActivos.length > 0) {
+          filtrosActivosDiv.classList.remove("hidden");
+          listaFiltrosDiv.innerHTML = filtrosActivos
+            .map(
+              (filtro) =>
+                `<span class="px-2 py-1 rounded text-xs ${filtro.color} flex items-center">
+              ${filtro.texto}
+              <button onclick="quitarFiltro('${filtro.tipo}')" class="ml-1 text-red-500 hover:text-red-700">×</button>
+            </span>`
+            )
+            .join("");
+        } else {
+          filtrosActivosDiv.classList.add("hidden");
+        }
+      }
+
+      async function quitarFiltro(tipoFiltro) {
+        currentFilters[tipoFiltro] = "todos";
+
+        // Actualizar selector correspondiente
+        const selector = document.getElementById(`filtro-${tipoFiltro}`);
+        if (selector) {
+          selector.value = "todos";
+        }
+
+        // Recargar con nuevos filtros
+        await cargarTicketsConFiltros();
+        mostrarFiltrosActivos();
+
+        if (tipoFiltro === "tema") {
+          actualizarBotonesFiltroRapido("todos");
+        }
+      }
+
+      async function limpiarFiltros() {
+        currentFilters = {
+          estado: "todos",
+          tema: "todos",
+          prioridad: "todos",
+        };
+
+        // Resetear selectores
+        const selectorEstado = document.getElementById("filtro-estado");
+        const selectorTema = document.getElementById("filtro-tema");
+        const selectorPrioridad = document.getElementById("filtro-prioridad");
+
+        if (selectorEstado) selectorEstado.value = "todos";
+        if (selectorTema) selectorTema.value = "todos";
+        if (selectorPrioridad) selectorPrioridad.value = "todos";
+
+        // Recargar tickets
+        await cargarTicketsConFiltros();
+        mostrarFiltrosActivos();
+        actualizarBotonesFiltroRapido("todos");
+      }
+
+      function actualizarBotonesFiltroRapido(temaActivo) {
+        // Limpiar estados anteriores
+        document.querySelectorAll('[id^="btn-tema-"]').forEach((btn) => {
+          btn.classList.remove("bg-blue-500", "text-white", "font-bold");
+          btn.classList.add("hover:bg-gray-300");
+        });
+
+        // Activar botón actual
+        const btnActivo = document.getElementById(`btn-tema-${temaActivo}`);
+        if (btnActivo) {
+          btnActivo.classList.add("bg-blue-500", "text-white", "font-bold");
+          btnActivo.classList.remove("hover:bg-gray-300");
+        }
+      }
+
+      function actualizarContadoresYEstadisticas(estadisticas) {
+        const user = apiClient.getCurrentUser();
+        if (user?.rol !== "admin") return;
+
+        // Contadores generales
+        let contadores = {
+          abierto: 0,
+          en_proceso: 0,
+          cerrado: 0,
+          total: estadisticas.total_general || 0,
+        };
+
+        // Calcular contadores desde estadísticas por tema
+        if (estadisticas.por_tema) {
+          estadisticas.por_tema.forEach((tema) => {
+            contadores.abierto += tema.abiertos;
+            contadores.en_proceso += tema.en_proceso;
+            contadores.cerrado += tema.cerrados;
+          });
+        }
+
+        // Actualizar UI
+        const countAbiertos = document.getElementById("count-abiertos");
+        const countProceso = document.getElementById("count-proceso");
+        const countCerrados = document.getElementById("count-cerrados");
+        const countTotal = document.getElementById("count-total");
+
+        if (countAbiertos) countAbiertos.textContent = contadores.abierto;
+        if (countProceso) countProceso.textContent = contadores.en_proceso;
+        if (countCerrados) countCerrados.textContent = contadores.cerrado;
+        if (countTotal) countTotal.textContent = contadores.total;
+
+        // Mostrar estadísticas por categoría
+        mostrarEstadisticasPorCategoria(estadisticas.por_tema);
+      }
+
+      function mostrarEstadisticasPorCategoria(estadisticasTemas) {
+        const statsContainer = document.getElementById(
+          "estadisticas-categorias"
+        );
+        const statsGrid = document.getElementById("stats-por-categoria");
+
+        if (!statsContainer || !statsGrid) return;
+
+        if (!estadisticasTemas || estadisticasTemas.length === 0) {
+          statsContainer.classList.add("hidden");
+          return;
+        }
+
+        statsContainer.classList.remove("hidden");
+
+        statsGrid.innerHTML = estadisticasTemas
+          .map((tema) => {
+            const porcentajeResueltos =
+              tema.total > 0
+                ? Math.round((tema.cerrados / tema.total) * 100)
+                : 0;
+
+            return `
+            <div class="bg-white p-3 rounded-lg border border-gray-200 hover:shadow-md transition-shadow cursor-pointer" 
+                 onclick="filtroRapidoTema('${tema.tema}')">
+              <div class="flex items-center justify-between mb-2">
+                <h5 class="font-medium text-sm">${getTemaNombre(tema.tema)}</h5>
+                <span class="text-xs bg-gray-100 px-2 py-1 rounded">${
+                  tema.total
+                }</span>
+              </div>
+              <div class="space-y-1">
+                <div class="flex justify-between text-xs">
+                  <span class="text-green-600">🟢 ${tema.abiertos}</span>
+                  <span class="text-yellow-600">🟡 ${tema.en_proceso}</span>
+                  <span class="text-red-600">🔴 ${tema.cerrados}</span>
+                </div>
+                <div class="text-xs text-gray-500 text-center">${porcentajeResueltos}% resueltos</div>
+              </div>
+            </div>
+          `;
+          })
+          .join("");
+      }
+
+      function actualizarInfoResultados(cantidadTickets, filtros) {
+        const infoElement = document.getElementById("resultados-info");
+        if (!infoElement) return;
+
+        let mensaje = `Mostrando ${cantidadTickets} ticket${
+          cantidadTickets !== 1 ? "s" : ""
+        }`;
+
+        const filtrosAplicados = [];
+        if (filtros.estado !== "todos")
+          filtrosAplicados.push(`estado: ${getEstadoNombre(filtros.estado)}`);
+        if (filtros.tema !== "todos")
+          filtrosAplicados.push(`categoría: ${getTemaNombre(filtros.tema)}`);
+        if (filtros.prioridad !== "todos")
+          filtrosAplicados.push(
+            `prioridad: ${getPrioridadNombre(filtros.prioridad)}`
+          );
+
+        if (filtrosAplicados.length > 0) {
+          mensaje += ` con filtros: ${filtrosAplicados.join(", ")}`;
+        }
+
+        infoElement.textContent = mensaje;
+      }
+
+      async function exportarTickets() {
+        try {
+          const tickets = allTickets;
+          if (tickets.length === 0) {
+            alert("No hay tickets para exportar");
+            return;
+          }
+
+          let csv = "Fecha,Título,Usuario,Categoría,Estado,Prioridad,Mensaje\n";
+
+          tickets.forEach((ticket) => {
+            const fecha = new Date(ticket.fecha_creacion).toLocaleDateString();
+            const titulo = `"${(ticket.titulo || "Sin título").replace(
+              /"/g,
+              '""'
+            )}"`;
+            const usuario = `"${ticket.usuario_nombre || "Sin usuario"}"`;
+            const categoria = getTemaNombre(ticket.tema || "otro");
+            const estado = ticket.estado;
+            const prioridad = ticket.prioridad || "media";
+            const mensaje = `"${ticket.mensaje.replace(/"/g, '""')}"`;
+
+            csv += `${fecha},${titulo},${usuario},${categoria},${estado},${prioridad},${mensaje}\n`;
+          });
+
+          // Crear y descargar archivo
+          const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+          const link = document.createElement("a");
+          const url = URL.createObjectURL(blob);
+          link.setAttribute("href", url);
+          link.setAttribute(
+            "download",
+            `tickets_${new Date().toISOString().split("T")[0]}.csv`
+          );
+          link.style.visibility = "hidden";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          console.log("✅ Tickets exportados exitosamente");
+        } catch (error) {
+          console.error("❌ Error exportando tickets:", error);
+          alert("Error al exportar tickets: " + error.message);
+        }
+      }
+
+      // ==================
+      // FUNCIONES ORIGINALES DE TICKETS
+      // ==================
+
+      async function cargarTickets() {
+        const user = apiClient.getCurrentUser();
+
+        if (user?.rol === "admin") {
+          // Para admins, usar sistema de filtros
+          await cargarTicketsConFiltros();
+        } else {
+          // Para estudiantes/secretarias, usar método original
+          await cargarTicketsOriginal();
+        }
+      }
+
+      /// ✅ FUNCIÓN cargarTicketsOriginal CORREGIDA
+      // Reemplazar esta función en tickets.html
+
+      async function cargarTicketsOriginal() {
+        const loadingElement = document.getElementById("loading-tickets");
+        const listaElement = document.getElementById("ticket-lista");
+
+        try {
+          if (loadingElement) loadingElement.style.display = "block";
+          if (listaElement) listaElement.innerHTML = "";
+
+          console.log("📡 Solicitando tickets (método original)...");
+          const response = await apiClient.getTickets();
+
+          console.log("📡 Respuesta de getTickets:", response);
+          console.log("📡 Tipo de respuesta:", typeof response);
+          console.log("📡 Es array?", Array.isArray(response));
+
+          // ✅ VALIDAR Y EXTRAER TICKETS DE LA RESPUESTA
+          let tickets = [];
+
+          if (Array.isArray(response)) {
+            // Formato directo: [ticket1, ticket2, ...]
+            tickets = response;
+            console.log(
+              "✅ Formato directo: encontrados",
+              tickets.length,
+              "tickets"
+            );
+          } else if (
+            response &&
+            response.tickets &&
+            Array.isArray(response.tickets)
+          ) {
+            // Formato con wrapper: { tickets: [ticket1, ticket2, ...] }
+            tickets = response.tickets;
+            console.log(
+              "✅ Formato con wrapper: encontrados",
+              tickets.length,
+              "tickets"
+            );
+          } else if (response && typeof response === "object") {
+            // Si es un objeto pero no tiene tickets, intentar convertir
+            console.warn(
+              "⚠️ Respuesta es objeto pero no tiene array de tickets:",
+              response
+            );
+            tickets = [];
+          } else {
+            // Respuesta completamente inválida
+            console.error("❌ Respuesta inválida de getTickets:", response);
+            tickets = [];
+          }
+
+          // ✅ VALIDAR QUE CADA ELEMENTO SEA UN TICKET VÁLIDO
+          const ticketsValidos = tickets.filter((ticket) => {
+            if (!ticket || typeof ticket !== "object") {
+              console.warn("⚠️ Ticket inválido filtrado:", ticket);
+              return false;
+            }
+            return true;
+          });
+
+          allTickets = ticketsValidos;
+          console.log(
+            `✅ ${ticketsValidos.length} tickets válidos cargados (de ${tickets.length} recibidos)`
+          );
+
+          if (loadingElement) loadingElement.style.display = "none";
+
+          // Actualizar contadores y mostrar tickets
+          actualizarContadores(ticketsValidos);
+          mostrarTickets(ticketsValidos);
+
+          // Si no hay tickets, mostrar mensaje informativo
+          if (ticketsValidos.length === 0) {
+            console.log("📭 No hay tickets para mostrar");
+          }
+        } catch (error) {
+          console.error("❌ Error cargando tickets:", error);
+          console.error("❌ Stack trace:", error.stack);
+
+          if (loadingElement) loadingElement.style.display = "none";
+          if (listaElement) {
+            listaElement.innerHTML = `
+        <div class="text-center text-red-500 py-8">
+          <h3 class="text-lg font-semibold mb-2">Error cargando tickets</h3>
+          <p class="mb-2">${error.message}</p>
+          <button onclick="cargarTickets()" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+            🔄 Intentar nuevamente
+          </button>
+        </div>
+      `;
+          }
+        }
+      }
+
       function mostrarTickets(tickets) {
         const listaElement = document.getElementById("ticket-lista");
+
+        if (!listaElement) {
+          console.error("❌ No se encontró elemento ticket-lista");
+          return;
+        }
+
+        // ✅ VALIDAR QUE tickets SEA UN ARRAY
+        if (!tickets) {
+          console.error("❌ tickets es undefined o null");
+          listaElement.innerHTML =
+            '<div class="text-center text-red-500 py-8">Error: No se pudieron cargar los tickets</div>';
+          return;
+        }
+
+        if (!Array.isArray(tickets)) {
+          console.error("❌ tickets no es un array:", typeof tickets, tickets);
+          listaElement.innerHTML =
+            '<div class="text-center text-red-500 py-8">Error: Formato de datos incorrecto</div>';
+          return;
+        }
 
         if (tickets.length === 0) {
           listaElement.innerHTML =
@@ -671,9 +1346,16 @@
           return;
         }
 
+        console.log(`✅ Mostrando ${tickets.length} tickets válidos`);
         listaElement.innerHTML = "";
 
         tickets.forEach((ticket) => {
+          // ✅ VALIDAR QUE CADA ticket SEA UN OBJETO VÁLIDO
+          if (!ticket || typeof ticket !== "object") {
+            console.warn("⚠️ Ticket inválido:", ticket);
+            return; // Saltar este ticket
+          }
+
           const item = document.createElement("div");
           item.className =
             "bg-white p-4 rounded border-l-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer";
@@ -687,9 +1369,17 @@
           item.className +=
             " " + (estadoColors[ticket.estado] || "border-gray-500");
 
-          const fecha = new Date(ticket.fecha_creacion).toLocaleDateString(
-            "es-ES"
-          );
+          // ✅ VALIDAR FECHA ANTES DE FORMATEAR
+          let fecha = "Fecha no disponible";
+          try {
+            if (ticket.fecha_creacion) {
+              fecha = new Date(ticket.fecha_creacion).toLocaleDateString(
+                "es-ES"
+              );
+            }
+          } catch (e) {
+            console.warn("⚠️ Error formateando fecha:", e);
+          }
 
           // ✅ MOSTRAR TEMA SI EXISTE
           const temaHTML = ticket.tema
@@ -699,23 +1389,27 @@
             : "";
 
           item.innerHTML = `
-            <div class="flex justify-between items-start mb-2">
-              <h4 class="font-semibold text-lg">${
-                ticket.titulo || "Solicitud General"
-              }</h4>
-              <span class="text-xs px-2 py-1 rounded-full bg-gray-200">
-                ${ticket.estado.toUpperCase().replace("_", " ")}
-              </span>
-            </div>
-            <div class="mb-2">
-              ${temaHTML}
-            </div>
-            <p class="text-gray-700 mb-2 line-clamp-2">${ticket.mensaje}</p>
-            <div class="text-sm text-gray-500">
-              <span>👤 ${ticket.usuario_nombre || ticket.nombre}</span>
-              <span class="float-right">📅 ${fecha}</span>
-            </div>
-          `;
+      <div class="flex justify-between items-start mb-2">
+        <h4 class="font-semibold text-lg">${
+          ticket.titulo || "Solicitud General"
+        }</h4>
+        <span class="text-xs px-2 py-1 rounded-full bg-gray-200">
+          ${(ticket.estado || "desconocido").toUpperCase().replace("_", " ")}
+        </span>
+      </div>
+      <div class="mb-2">
+        ${temaHTML}
+      </div>
+      <p class="text-gray-700 mb-2 line-clamp-2">${
+        ticket.mensaje || "Sin mensaje"
+      }</p>
+      <div class="text-sm text-gray-500">
+        <span>👤 ${
+          ticket.usuario_nombre || ticket.nombre || "Usuario desconocido"
+        }</span>
+        <span class="float-right">📅 ${fecha}</span>
+      </div>
+    `;
 
           item.onclick = () => abrirModalTicket(ticket);
           listaElement.appendChild(item);
@@ -762,21 +1456,67 @@
           total: tickets.length,
         };
 
-        document.getElementById("count-abiertos").textContent =
-          contadores.abierto;
-        document.getElementById("count-proceso").textContent =
-          contadores.en_proceso;
-        document.getElementById("count-cerrados").textContent =
-          contadores.cerrado;
-        document.getElementById("count-total").textContent = contadores.total;
+        const countAbiertos = document.getElementById("count-abiertos");
+        const countProceso = document.getElementById("count-proceso");
+        const countCerrados = document.getElementById("count-cerrados");
+        const countTotal = document.getElementById("count-total");
+
+        if (countAbiertos) countAbiertos.textContent = contadores.abierto;
+        if (countProceso) countProceso.textContent = contadores.en_proceso;
+        if (countCerrados) countCerrados.textContent = contadores.cerrado;
+        if (countTotal) countTotal.textContent = contadores.total;
       }
 
-      // ✅ FUNCIÓN RESTAURADA PARA ABRIR MODAL
+      async function crearTicket() {
+        const titulo = document.getElementById("titulo")?.value.trim() || null;
+        const tema = document.getElementById("tema")?.value.trim();
+        const mensaje = document.getElementById("mensaje")?.value.trim();
+
+        if (!tema) {
+          mostrarMensajeForm("❌ Debes seleccionar un tema", "error");
+          return;
+        }
+
+        if (!mensaje) {
+          mostrarMensajeForm("❌ El mensaje es requerido", "error");
+          return;
+        }
+
+        try {
+          mostrarMensajeForm("🔄 Enviando solicitud...", "info");
+
+          const ticketData = {
+            titulo: titulo || `Solicitud sobre ${getTemaNombre(tema)}`,
+            mensaje: `[${getTemaNombre(tema)}] ${mensaje}`,
+            tema: tema,
+          };
+
+          await apiClient.createTicket(ticketData);
+
+          mostrarMensajeForm("✅ Solicitud enviada exitosamente", "success");
+
+          const tituloInput = document.getElementById("titulo");
+          const temaInput = document.getElementById("tema");
+          const mensajeInput = document.getElementById("mensaje");
+
+          if (tituloInput) tituloInput.value = "";
+          if (temaInput) temaInput.value = "";
+          if (mensajeInput) mensajeInput.value = "";
+
+          await cargarTickets();
+        } catch (error) {
+          console.error("❌ Error creando ticket:", error);
+          mostrarMensajeForm(`❌ Error: ${error.message}`, "error");
+        }
+      }
+
       async function abrirModalTicket(ticket) {
         currentTicketId = ticket.id;
         const modal = document.getElementById("ticket-modal");
         const content = document.getElementById("ticket-content");
         const respuestaSection = document.getElementById("respuesta-section");
+
+        if (!modal || !content) return;
 
         const fecha = new Date(ticket.fecha_creacion).toLocaleDateString(
           "es-ES"
@@ -808,22 +1548,27 @@
           </div>
         `;
 
-        // ✅ CARGAR RESPUESTAS EXISTENTES
+        // Cargar respuestas existentes
         await cargarRespuestasTicket(ticket.id);
 
         const user = apiClient.getCurrentUser();
-        if (user && ["admin", "secretaria"].includes(user.rol)) {
+        if (
+          user &&
+          ["admin", "secretaria"].includes(user.rol) &&
+          respuestaSection
+        ) {
           respuestaSection.classList.remove("hidden");
         }
 
         modal.classList.remove("hidden");
       }
 
-      // ✅ FUNCIÓN RESTAURADA PARA CARGAR RESPUESTAS
       async function cargarRespuestasTicket(ticketId) {
         try {
           const respuestas = await apiClient.getTicketResponses(ticketId);
           const listaRespuestas = document.getElementById("lista-respuestas");
+
+          if (!listaRespuestas) return;
 
           if (respuestas.length === 0) {
             listaRespuestas.innerHTML =
@@ -854,25 +1599,34 @@
           });
         } catch (error) {
           console.error("❌ Error cargando respuestas:", error);
-          document.getElementById("lista-respuestas").innerHTML =
-            '<p class="text-red-500 text-sm">Error cargando respuestas.</p>';
+          const listaRespuestas = document.getElementById("lista-respuestas");
+          if (listaRespuestas) {
+            listaRespuestas.innerHTML =
+              '<p class="text-red-500 text-sm">Error cargando respuestas.</p>';
+          }
         }
       }
 
       function cerrarModal() {
-        document.getElementById("ticket-modal").classList.add("hidden");
+        const modal = document.getElementById("ticket-modal");
+        const respuestaTexto = document.getElementById("respuesta-texto");
+
+        if (modal) modal.classList.add("hidden");
+        if (respuestaTexto) respuestaTexto.value = "";
+
         currentTicketId = null;
-        document.getElementById("respuesta-texto").value = "";
       }
 
-      // ✅ FUNCIÓN RESTAURADA PARA RESPONDER TICKETS
       async function responderTicket() {
         if (!currentTicketId) return;
 
-        const respuesta = document
-          .getElementById("respuesta-texto")
-          .value.trim();
-        const nuevoEstado = document.getElementById("nuevo-estado").value;
+        const respuestaInput = document.getElementById("respuesta-texto");
+        const nuevoEstadoSelect = document.getElementById("nuevo-estado");
+
+        if (!respuestaInput || !nuevoEstadoSelect) return;
+
+        const respuesta = respuestaInput.value.trim();
+        const nuevoEstado = nuevoEstadoSelect.value;
 
         if (!respuesta) {
           alert("❌ La respuesta es requerida");
@@ -892,7 +1646,7 @@
           await cargarTickets();
 
           // Limpiar formulario
-          document.getElementById("respuesta-texto").value = "";
+          respuestaInput.value = "";
         } catch (error) {
           alert(`❌ Error: ${error.message}`);
         }
@@ -918,10 +1672,52 @@
         apiClient.logout();
       }
 
+      // ==================
+      // ✅ FUNCIONES AUXILIARES PARA NOMBRES
+      // ==================
+
+      function getTemaNombre(valor) {
+        const temas = {
+          materia: "📚 Materias y Horarios",
+          practicas: "🔬 Prácticas Profesionales",
+          certificados: "📄 Certificados y Documentos",
+          matricula: "🎓 Matrícula y Pagos",
+          notas: "📊 Notas y Calificaciones",
+          tramites: "📋 Trámites Administrativos",
+          becas: "💰 Becas y Ayudas",
+          otro: "❓ Otro",
+        };
+        return temas[valor] || valor;
+      }
+
+      function getEstadoNombre(estado) {
+        const estados = {
+          abierto: "🟢 Abierto",
+          en_proceso: "🟡 En Proceso",
+          cerrado: "🔴 Cerrado",
+        };
+        return estados[estado] || estado;
+      }
+
+      function getPrioridadNombre(prioridad) {
+        const prioridades = {
+          alta: "🔴 Alta",
+          media: "🟡 Media",
+          baja: "🟢 Baja",
+        };
+        return prioridades[prioridad] || prioridad;
+      }
+
       // Cerrar modal con Escape
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape") cerrarModal();
       });
+
+      console.log(
+        "🚀 Sistema de tickets con filtrado avanzado cargado exitosamente"
+      );
+      console.log("🔍 Filtros disponibles: Estado, Tema/Categoría, Prioridad");
+      console.log("📊 Estadísticas y exportación: ✅");
     </script>
   </body>
 </html>

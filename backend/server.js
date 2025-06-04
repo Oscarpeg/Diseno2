@@ -261,10 +261,20 @@ app.get("/api/auth/me", authenticateUser, (req, res) => {
 // ======================
 
 // ✅ Obtener posts con información de votos del usuario
+// ✅ RUTA DE POSTS CON PAGINACIÓN CORREGIDA
 app.get("/api/posts", async (req, res) => {
   try {
     const sessionId = req.headers.authorization?.replace("Bearer ", "");
     let userId = null;
+
+    // Obtener parámetros de paginación
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+
+    console.log(
+      `📄 Solicitando posts - Página: ${page}, Límite: ${limit}, Offset: ${offset}`
+    );
 
     // Obtener ID del usuario si está autenticado
     if (sessionId) {
@@ -303,15 +313,31 @@ app.get("/api/posts", async (req, res) => {
       WHERE p.activo = TRUE 
       GROUP BY p.id
       ORDER BY p.fecha_creacion DESC 
-      LIMIT 20
+      LIMIT ${limit} OFFSET ${offset}
     `;
 
     const [posts] = await pool.execute(query);
 
-    console.log(
-      `📋 Devolviendo ${posts.length} posts con información de votos`
+    // ✅ OBTENER TOTAL DE POSTS PARA SABER SI HAY MÁS
+    const [totalResult] = await pool.execute(
+      "SELECT COUNT(*) as total FROM posts WHERE activo = TRUE"
     );
-    res.json(posts);
+    const totalPosts = totalResult[0].total;
+    const hasMore = offset + posts.length < totalPosts;
+
+    console.log(
+      `📋 Devolviendo ${posts.length} posts de ${totalPosts} totales. ¿Hay más?: ${hasMore}`
+    );
+
+    res.json({
+      posts: posts,
+      pagination: {
+        currentPage: page,
+        totalPosts: totalPosts,
+        hasMore: hasMore,
+        postsPerPage: limit,
+      },
+    });
   } catch (error) {
     console.error("❌ Error obteniendo posts:", error);
     res.status(500).json({ error: "Error interno del servidor" });
@@ -713,14 +739,22 @@ app.post("/api/tickets", authenticateUser, requireStudent, async (req, res) => {
 });
 
 // ✅ Obtener tickets incluye tema
+
+// ✅ RUTA DE TICKETS CON FILTRADO POR CATEGORÍAS - Reemplazar en backend/server.js
+
 app.get("/api/tickets", authenticateUser, async (req, res) => {
   try {
+    // ✅ OBTENER PARÁMETROS DE FILTRADO
+    const { estado, tema, prioridad, page = 1, limit = 50 } = req.query;
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
     let query = `
       SELECT t.*, u.username as usuario_nombre 
       FROM tickets t 
       JOIN usuarios u ON t.usuario_id = u.id 
     `;
     let params = [];
+    let whereConditions = [];
 
     console.log(
       "📋 Obteniendo tickets para usuario:",
@@ -728,10 +762,18 @@ app.get("/api/tickets", authenticateUser, async (req, res) => {
       "rol:",
       req.user.rol
     );
+    console.log("🔍 Filtros aplicados:", {
+      estado,
+      tema,
+      prioridad,
+      page,
+      limit,
+    });
 
+    // ✅ CONTROL DE ACCESO POR ROL
     if (["estudiante", "usuario"].includes(req.user.rol)) {
       // Estudiantes solo ven sus propios tickets
-      query += " WHERE t.usuario_id = ?";
+      whereConditions.push("t.usuario_id = ?");
       params.push(req.user.user_id);
       console.log("👨‍🎓 Mostrando tickets del estudiante:", req.user.user_id);
     } else if (["admin", "secretaria"].includes(req.user.rol)) {
@@ -744,15 +786,103 @@ app.get("/api/tickets", authenticateUser, async (req, res) => {
       });
     }
 
+    // ✅ FILTROS ADICIONALES (solo para admins/secretarias)
+    if (["admin", "secretaria"].includes(req.user.rol)) {
+      // Filtro por estado
+      if (estado && estado !== "todos") {
+        whereConditions.push("t.estado = ?");
+        params.push(estado);
+        console.log("🏷️ Filtro por estado:", estado);
+      }
+
+      // Filtro por tema/categoría
+      if (tema && tema !== "todos") {
+        whereConditions.push("t.tema = ?");
+        params.push(tema);
+        console.log("📂 Filtro por tema:", tema);
+      }
+
+      // Filtro por prioridad
+      if (prioridad && prioridad !== "todos") {
+        whereConditions.push("t.prioridad = ?");
+        params.push(prioridad);
+        console.log("⚡ Filtro por prioridad:", prioridad);
+      }
+    }
+
+    // ✅ CONSTRUIR QUERY FINAL
+    if (whereConditions.length > 0) {
+      query += " WHERE " + whereConditions.join(" AND ");
+    }
+
+    // Query para contar total (para paginación)
+    const countQuery = query.replace(
+      "SELECT t.*, u.username as usuario_nombre",
+      "SELECT COUNT(*) as total"
+    );
+
     query += " ORDER BY t.fecha_creacion DESC";
 
-    const [tickets] = await pool.execute(query, params);
+    // Solo agregar paginación si es necesario
+    if (parseInt(limit) > 0) {
+      query += ` LIMIT ${parseInt(limit)} OFFSET ${offset}`;
+    }
 
-    console.log(`✅ Devolviendo ${tickets.length} tickets`);
-    res.json(tickets);
+    // ✅ EJECUTAR QUERIES
+    const [tickets] = await pool.execute(query, params);
+    const [countResult] = await pool.execute(countQuery, params);
+
+    const totalTickets = countResult[0].total;
+    const hasMore = offset + tickets.length < totalTickets;
+
+    // ✅ ESTADÍSTICAS POR CATEGORÍA (solo para admins)
+    let estadisticas = null;
+    if (req.user.rol === "admin") {
+      const [statsResult] = await pool.execute(`
+        SELECT 
+          tema,
+          COUNT(*) as total,
+          COUNT(CASE WHEN estado = 'abierto' THEN 1 END) as abiertos,
+          COUNT(CASE WHEN estado = 'en_proceso' THEN 1 END) as en_proceso,
+          COUNT(CASE WHEN estado = 'cerrado' THEN 1 END) as cerrados
+        FROM tickets t
+        WHERE tema IS NOT NULL
+        GROUP BY tema
+        ORDER BY total DESC
+      `);
+
+      estadisticas = {
+        por_tema: statsResult,
+        total_general: totalTickets,
+      };
+    }
+
+    console.log(
+      `✅ Devolviendo ${tickets.length} tickets de ${totalTickets} totales`
+    );
+
+    res.json({
+      tickets: tickets,
+      pagination: {
+        currentPage: parseInt(page),
+        totalTickets: totalTickets,
+        hasMore: hasMore,
+        ticketsPerPage: parseInt(limit),
+      },
+      estadisticas: estadisticas,
+      filtros_aplicados: {
+        estado: estado || "todos",
+        tema: tema || "todos",
+        prioridad: prioridad || "todos",
+      },
+    });
   } catch (error) {
     console.error("❌ Error obteniendo tickets:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
+    res.status(500).json({
+      error: "Error interno del servidor",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 });
 
