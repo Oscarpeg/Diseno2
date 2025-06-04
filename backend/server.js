@@ -127,6 +127,8 @@ function requireAdminOrSecretary(req, res, next) {
 // ======================
 
 // ✅ Registro con roles específicos
+// Reemplaza la ruta de registro en backend/server.js (líneas ~30-80)
+
 app.post("/api/auth/register", async (req, res) => {
   try {
     const { email, username, password, rol = "estudiante" } = req.body;
@@ -144,23 +146,12 @@ app.post("/api/auth/register", async (req, res) => {
       });
     }
 
-    // ✅ Validar roles permitidos
+    // ✅ Validar roles permitidos (SIN restricción de código)
     const rolesPermitidos = ["estudiante", "admin", "secretaria"];
     if (!rolesPermitidos.includes(rol)) {
       return res.status(400).json({
         error: "Rol inválido. Roles permitidos: " + rolesPermitidos.join(", "),
       });
-    }
-
-    // ✅ Solo admins pueden crear otros admins o secretarias
-    if (["admin", "secretaria"].includes(rol)) {
-      const { adminCode } = req.body;
-      if (adminCode !== process.env.ADMIN_REGISTRATION_CODE) {
-        return res.status(403).json({
-          error:
-            "Código de administrador requerido para crear este tipo de cuenta",
-        });
-      }
     }
 
     // Verificar si el usuario ya existe

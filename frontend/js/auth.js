@@ -1,4 +1,4 @@
-// js/auth.js - Autenticación con API
+// Reemplaza la función registrar() en frontend/js/auth.js
 
 async function registrar() {
   const email = document.getElementById("reg-email").value.trim();
@@ -14,7 +14,7 @@ async function registrar() {
     document.getElementById("reg-email").value = "";
     document.getElementById("reg-username").value = "";
     document.getElementById("reg-password").value = "";
-    document.getElementById("reg-rol").value = "usuario";
+    document.getElementById("reg-rol").value = "estudiante";
   } catch (error) {
     alert(error.message);
   }
