@@ -75,7 +75,6 @@ class ApiClient {
     window.location.href = "index.html";
   }
 
-  // ✅ FUNCIÓN CORREGIDA - YA NO ESTÁ DUPLICADA
   getCurrentUser() {
     return JSON.parse(localStorage.getItem("user") || "null");
   }
@@ -117,7 +116,7 @@ class ApiClient {
   // MÉTODOS DE POSTS
   // ==================
 
-  async getPosts(page = 1, limit = 10) {
+  async getPosts(page = 1, limit = 20) {
     return await this.request(`/posts?page=${page}&limit=${limit}`);
   }
 
@@ -129,12 +128,45 @@ class ApiClient {
     });
   }
 
+  async getPost(postId) {
+    return await this.request(`/posts/${postId}`);
+  }
+
+  async updatePost(postId, postData) {
+    return await this.request(`/posts/${postId}`, {
+      method: "PUT",
+      body: JSON.stringify(postData),
+    });
+  }
+
+  async deletePost(postId) {
+    return await this.request(`/posts/${postId}`, {
+      method: "DELETE",
+    });
+  }
+
+  // ==================
+  // MÉTODOS DE VOTACIÓN (NUEVOS)
+  // ==================
+
   async votePost(postId, tipo) {
     return await this.request(`/posts/${postId}/vote`, {
       method: "POST",
       body: JSON.stringify({ tipo }),
     });
   }
+
+  async getPostVotes(postId) {
+    return await this.request(`/posts/${postId}/votes`);
+  }
+
+  async getMyVote(postId) {
+    return await this.request(`/posts/${postId}/my-vote`);
+  }
+
+  // ==================
+  // MÉTODOS DE COMENTARIOS
+  // ==================
 
   async getComments(postId) {
     return await this.request(`/posts/${postId}/comments`);
@@ -147,8 +179,28 @@ class ApiClient {
     });
   }
 
+  async updateComment(commentId, contenido) {
+    return await this.request(`/comments/${commentId}`, {
+      method: "PUT",
+      body: JSON.stringify({ contenido }),
+    });
+  }
+
+  async deleteComment(commentId) {
+    return await this.request(`/comments/${commentId}`, {
+      method: "DELETE",
+    });
+  }
+
+  async voteComment(commentId, tipo) {
+    return await this.request(`/comments/${commentId}/vote`, {
+      method: "POST",
+      body: JSON.stringify({ tipo }),
+    });
+  }
+
   // ==================
-  // MÉTODOS DE TICKETS (ACTUALIZADOS)
+  // MÉTODOS DE TICKETS (ACTUALIZADOS CON TEMA)
   // ==================
 
   async getTickets() {
@@ -162,7 +214,10 @@ class ApiClient {
     });
   }
 
-  // ✅ NUEVO MÉTODO PARA RESPONDER TICKETS (para admins/secretarias)
+  async getTicket(ticketId) {
+    return await this.request(`/tickets/${ticketId}`);
+  }
+
   async respondTicket(ticketId, respuesta, estado = "en_proceso") {
     return await this.request(`/tickets/${ticketId}/respond`, {
       method: "POST",
@@ -170,16 +225,20 @@ class ApiClient {
     });
   }
 
-  // ✅ NUEVO MÉTODO PARA OBTENER RESPUESTAS DE UN TICKET
   async getTicketResponses(ticketId) {
     return await this.request(`/tickets/${ticketId}/responses`);
   }
 
-  // ✅ MÉTODO PARA ACTUALIZAR ESTADO DE TICKET (solo admins)
   async updateTicketStatus(ticketId, estado) {
     return await this.request(`/tickets/${ticketId}/status`, {
       method: "PATCH",
       body: JSON.stringify({ estado }),
+    });
+  }
+
+  async deleteTicket(ticketId) {
+    return await this.request(`/tickets/${ticketId}`, {
+      method: "DELETE",
     });
   }
 
@@ -191,7 +250,6 @@ class ApiClient {
     return await this.request("/publicaciones");
   }
 
-  // ✅ NUEVO MÉTODO PARA CREAR PUBLICACIONES CON IMAGEN (solo admins)
   async createPublicacion(publicacionData) {
     return await this.request("/publicaciones", {
       method: "POST",
@@ -199,7 +257,6 @@ class ApiClient {
     });
   }
 
-  // ✅ MÉTODO ESPECÍFICO PARA CREAR PUBLICACIONES CON FORMDATA (imágenes)
   async createPublicacionConFormData(formData) {
     return await this.request("/publicaciones", {
       method: "POST",
@@ -208,7 +265,10 @@ class ApiClient {
     });
   }
 
-  // ✅ MÉTODO PARA EDITAR PUBLICACIONES (solo admins)
+  async getPublicacion(publicacionId) {
+    return await this.request(`/publicaciones/${publicacionId}`);
+  }
+
   async updatePublicacion(publicacionId, publicacionData) {
     return await this.request(`/publicaciones/${publicacionId}`, {
       method: "PUT",
@@ -216,7 +276,6 @@ class ApiClient {
     });
   }
 
-  // ✅ MÉTODO PARA ELIMINAR PUBLICACIONES (solo admins)
   async deletePublicacion(publicacionId) {
     return await this.request(`/publicaciones/${publicacionId}`, {
       method: "DELETE",
@@ -227,51 +286,48 @@ class ApiClient {
   // MÉTODOS DE UTILIDAD
   // ==================
 
-  // ✅ MÉTODO PARA VERIFICAR SI EL USUARIO ESTÁ AUTENTICADO
   isAuthenticated() {
     return !!(this.sessionId && this.getCurrentUser());
   }
 
-  // ✅ MÉTODO PARA VERIFICAR ROL DEL USUARIO
   hasRole(rol) {
     const user = this.getCurrentUser();
     return user && user.rol === rol;
   }
 
-  // ✅ MÉTODO PARA VERIFICAR SI ES ADMIN
   isAdmin() {
     return this.hasRole("admin");
   }
 
-  // ✅ MÉTODO PARA VERIFICAR SI ES ESTUDIANTE
   isStudent() {
-    return this.hasRole("estudiante");
+    const user = this.getCurrentUser();
+    return user && ["estudiante", "usuario"].includes(user.rol);
   }
 
-  // ✅ MÉTODO PARA VERIFICAR SI ES SECRETARIA
   isSecretary() {
     return this.hasRole("secretaria");
   }
 
-  // ✅ MÉTODO PARA VERIFICAR SI ES ADMIN O SECRETARIA
   isAdminOrSecretary() {
     const user = this.getCurrentUser();
     return user && ["admin", "secretaria"].includes(user.rol);
   }
 
-  // ✅ MÉTODO PARA OBTENER EL ROL ACTUAL
   getCurrentRole() {
     const user = this.getCurrentUser();
     return user ? user.rol : null;
   }
 
-  // ✅ MÉTODO PARA OBTENER EL NOMBRE DEL USUARIO
   getCurrentUsername() {
     const user = this.getCurrentUser();
     return user ? user.username : null;
   }
 
-  // ✅ MÉTODO PARA VERIFICAR SI LA SESIÓN ES VÁLIDA
+  getCurrentUserId() {
+    const user = this.getCurrentUser();
+    return user ? user.id : null;
+  }
+
   async validateSession() {
     try {
       await this.getUserInfo();
@@ -282,68 +338,277 @@ class ApiClient {
   }
 
   // ==================
-  // MÉTODOS PARA COMENTARIOS Y VOTACIONES (FUTUROS)
+  // MÉTODOS DE BÚSQUEDA Y FILTROS
   // ==================
 
-  // ✅ MÉTODO PARA VOTAR COMENTARIOS
-  async voteComment(commentId, tipo) {
-    return await this.request(`/comments/${commentId}/vote`, {
-      method: "POST",
-      body: JSON.stringify({ tipo }),
+  async searchPosts(query, filters = {}) {
+    const params = new URLSearchParams({
+      q: query,
+      ...filters,
     });
+    return await this.request(`/posts/search?${params}`);
   }
 
-  // ✅ MÉTODO PARA EDITAR COMENTARIOS
-  async updateComment(commentId, contenido) {
-    return await this.request(`/comments/${commentId}`, {
-      method: "PUT",
-      body: JSON.stringify({ contenido }),
-    });
+  async getPostsByUser(userId, page = 1, limit = 20) {
+    return await this.request(
+      `/users/${userId}/posts?page=${page}&limit=${limit}`
+    );
   }
 
-  // ✅ MÉTODO PARA ELIMINAR COMENTARIOS
-  async deleteComment(commentId) {
-    return await this.request(`/comments/${commentId}`, {
-      method: "DELETE",
-    });
+  async getPostsByTag(tag, page = 1, limit = 20) {
+    return await this.request(`/posts/tag/${tag}?page=${page}&limit=${limit}`);
+  }
+
+  async getTicketsByTema(tema) {
+    return await this.request(`/tickets?tema=${tema}`);
+  }
+
+  async getTicketsByEstado(estado) {
+    return await this.request(`/tickets?estado=${estado}`);
   }
 
   // ==================
   // MÉTODOS DE ESTADÍSTICAS (PARA ADMINS)
   // ==================
 
-  // ✅ MÉTODO PARA OBTENER ESTADÍSTICAS GENERALES
   async getStats() {
     return await this.request("/stats");
   }
 
-  // ✅ MÉTODO PARA OBTENER ESTADÍSTICAS DE TICKETS
   async getTicketStats() {
     return await this.request("/stats/tickets");
   }
 
-  // ✅ MÉTODO PARA OBTENER ESTADÍSTICAS DE USUARIOS
   async getUserStats() {
     return await this.request("/stats/users");
+  }
+
+  async getPostStats() {
+    return await this.request("/stats/posts");
+  }
+
+  async getVotingStats() {
+    return await this.request("/stats/votes");
   }
 
   // ==================
   // MÉTODOS DE CONFIGURACIÓN (PARA ADMINS)
   // ==================
 
-  // ✅ MÉTODO PARA OBTENER CONFIGURACIÓN
   async getConfig() {
     return await this.request("/config");
   }
 
-  // ✅ MÉTODO PARA ACTUALIZAR CONFIGURACIÓN
   async updateConfig(configData) {
     return await this.request("/config", {
       method: "PUT",
       body: JSON.stringify(configData),
     });
   }
+
+  // ==================
+  // MÉTODOS DE NOTIFICACIONES
+  // ==================
+
+  async getNotifications() {
+    return await this.request("/notifications");
+  }
+
+  async markNotificationAsRead(notificationId) {
+    return await this.request(`/notifications/${notificationId}/read`, {
+      method: "PATCH",
+    });
+  }
+
+  async markAllNotificationsAsRead() {
+    return await this.request("/notifications/read-all", {
+      method: "PATCH",
+    });
+  }
+
+  // ==================
+  // MÉTODOS DE MODERACIÓN (PARA ADMINS)
+  // ==================
+
+  async moderatePost(postId, action, reason = "") {
+    return await this.request(`/posts/${postId}/moderate`, {
+      method: "POST",
+      body: JSON.stringify({ action, reason }),
+    });
+  }
+
+  async moderateComment(commentId, action, reason = "") {
+    return await this.request(`/comments/${commentId}/moderate`, {
+      method: "POST",
+      body: JSON.stringify({ action, reason }),
+    });
+  }
+
+  async banUser(userId, reason, duration = null) {
+    return await this.request(`/users/${userId}/ban`, {
+      method: "POST",
+      body: JSON.stringify({ reason, duration }),
+    });
+  }
+
+  async unbanUser(userId) {
+    return await this.request(`/users/${userId}/unban`, {
+      method: "POST",
+    });
+  }
+
+  // ==================
+  // MÉTODOS DE ARCHIVOS Y UPLOADS
+  // ==================
+
+  async uploadImage(file, folder = "general") {
+    const formData = new FormData();
+    formData.append("image", file);
+    formData.append("folder", folder);
+
+    return await this.request("/upload/image", {
+      method: "POST",
+      headers: {}, // Sin Content-Type para FormData
+      body: formData,
+    });
+  }
+
+  async deleteImage(imageUrl) {
+    return await this.request("/upload/delete", {
+      method: "DELETE",
+      body: JSON.stringify({ imageUrl }),
+    });
+  }
+
+  // ==================
+  // MÉTODOS DE REPORTES Y ANÁLISIS
+  // ==================
+
+  async reportContent(contentType, contentId, reason) {
+    return await this.request("/reports", {
+      method: "POST",
+      body: JSON.stringify({ contentType, contentId, reason }),
+    });
+  }
+
+  async getReports() {
+    return await this.request("/reports");
+  }
+
+  async resolveReport(reportId, action, notes = "") {
+    return await this.request(`/reports/${reportId}/resolve`, {
+      method: "POST",
+      body: JSON.stringify({ action, notes }),
+    });
+  }
+
+  // ==================
+  // MÉTODOS DE EXPORTACIÓN
+  // ==================
+
+  async exportData(type, format = "json", filters = {}) {
+    const params = new URLSearchParams({
+      type,
+      format,
+      ...filters,
+    });
+
+    const response = await fetch(`${this.baseURL}/export?${params}`, {
+      headers: {
+        Authorization: `Bearer ${this.sessionId}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Error exportando datos");
+    }
+
+    return response.blob();
+  }
+
+  // ==================
+  // MÉTODOS DE HEALTH CHECK
+  // ==================
+
+  async healthCheck() {
+    try {
+      const response = await fetch(
+        `${this.baseURL.replace("/api", "")}/health`
+      );
+      return await response.json();
+    } catch (error) {
+      return { status: "error", message: error.message };
+    }
+  }
+
+  async getDatabaseStatus() {
+    return await this.request("/system/database");
+  }
+
+  // ==================
+  // MÉTODOS DE DEBUGGING (SOLO DESARROLLO)
+  // ==================
+
+  async getDebugInfo() {
+    if (process?.env?.NODE_ENV !== "development") {
+      throw new Error("Debug info solo disponible en desarrollo");
+    }
+    return await this.request("/debug/info");
+  }
+
+  async clearCache() {
+    return await this.request("/debug/clear-cache", {
+      method: "POST",
+    });
+  }
+
+  // ==================
+  // UTILIDADES DE FORMATO
+  // ==================
+
+  formatError(error) {
+    if (error.message.includes("Failed to fetch")) {
+      return "Error de conexión. Verifica tu internet.";
+    } else if (error.message.includes("401")) {
+      return "Sesión expirada. Inicia sesión nuevamente.";
+    } else if (error.message.includes("403")) {
+      return "No tienes permisos para realizar esta acción.";
+    } else if (error.message.includes("404")) {
+      return "El recurso solicitado no fue encontrado.";
+    } else if (error.message.includes("429")) {
+      return "Demasiadas peticiones. Intenta más tarde.";
+    } else if (error.message.includes("500")) {
+      return "Error interno del servidor. Intenta más tarde.";
+    }
+    return error.message;
+  }
+
+  formatDate(dateString) {
+    return new Date(dateString).toLocaleDateString("es-ES", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }
+
+  formatNumber(num) {
+    if (num >= 1000000) {
+      return (num / 1000000).toFixed(1) + "M";
+    } else if (num >= 1000) {
+      return (num / 1000).toFixed(1) + "K";
+    }
+    return num.toString();
+  }
 }
 
 // Instancia global del cliente API
 const apiClient = new ApiClient();
+
+// Exportar para uso en módulos (si es necesario)
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = ApiClient;
+}
+
+console.log("🚀 API Client completo cargado exitosamente");

@@ -1,4 +1,4 @@
-// server.js - Sistema completo con roles y autorización
+// server.js - Sistema completo con roles, votaciones, tickets y todo
 require("dotenv").config();
 const express = require("express");
 const mysql = require("mysql2/promise");
@@ -86,7 +86,7 @@ async function authenticateUser(req, res, next) {
 
 // ✅ Middleware para verificar que el usuario sea ESTUDIANTE
 function requireStudent(req, res, next) {
-  if (req.user.rol !== "estudiante") {
+  if (!["estudiante", "usuario"].includes(req.user.rol)) {
     return res.status(403).json({
       error: "Acceso denegado. Solo estudiantes pueden realizar esta acción.",
       requiredRole: "estudiante",
@@ -245,206 +245,6 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-// ======================
-// RUTAS DE TICKETS
-// ======================
-
-// ✅ Crear ticket - SOLO ESTUDIANTES
-app.post("/api/tickets", authenticateUser, requireStudent, async (req, res) => {
-  try {
-    const { titulo, mensaje, prioridad = "media" } = req.body;
-    const userId = req.user.user_id;
-    const nombre = req.user.username;
-
-    if (!titulo || !mensaje) {
-      return res.status(400).json({
-        error: "Título y mensaje son requeridos",
-      });
-    }
-
-    const [result] = await pool.execute(
-      "INSERT INTO tickets (usuario_id, nombre, titulo, mensaje, prioridad, estado) VALUES (?, ?, ?, ?, ?, 'abierto')",
-      [userId, nombre, titulo, mensaje, prioridad]
-    );
-
-    res.status(201).json({
-      message: "Ticket creado exitosamente",
-      ticketId: result.insertId,
-    });
-  } catch (error) {
-    console.error("Error creando ticket:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// ✅ Obtener tickets
-app.get("/api/tickets", authenticateUser, async (req, res) => {
-  try {
-    let query = `
-      SELECT t.*, u.username as usuario_nombre 
-      FROM tickets t 
-      JOIN usuarios u ON t.usuario_id = u.id 
-    `;
-    let params = [];
-
-    if (req.user.rol === "estudiante") {
-      query += " WHERE t.usuario_id = ?";
-      params.push(req.user.user_id);
-    } else if (["admin", "secretaria"].includes(req.user.rol)) {
-      // Admins y secretarias ven todos los tickets
-    } else {
-      return res
-        .status(403)
-        .json({ error: "Rol no autorizado para ver tickets" });
-    }
-
-    query += " ORDER BY t.fecha_creacion DESC";
-
-    const [tickets] = await pool.execute(query, params);
-    res.json(tickets);
-  } catch (error) {
-    console.error("Error obteniendo tickets:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// ======================
-// RUTAS DE PUBLICACIONES (MODIFICADAS)
-// ======================
-
-// ✅ Crear publicación con imagen - SOLO ADMINS
-app.post(
-  "/api/publicaciones",
-  authenticateUser,
-  requireAdmin,
-  upload.single("imagen"), // Middleware para manejar archivo de imagen
-  async (req, res) => {
-    try {
-      console.log("📝 Petición recibida para crear publicación");
-      console.log("📄 Body:", req.body);
-      console.log("📷 File:", req.file ? req.file.filename : "Sin archivo");
-      console.log("👤 Usuario:", req.user.user_id, req.user.username);
-
-      // ✅ Extraer datos del body (viene del FormData)
-      const { titulo, contenido, destacada, fecha_expiracion } = req.body;
-
-      const adminId = req.user.user_id;
-
-      // ✅ Procesar imagen si existe
-      const imagen_url = req.file ? `/uploads/${req.file.filename}` : null;
-
-      // ✅ Log de validación
-      console.log("🔍 Datos procesados:");
-      console.log("  - Título:", titulo);
-      console.log(
-        "  - Contenido:",
-        contenido ? contenido.substring(0, 50) + "..." : "vacío"
-      );
-      console.log("  - Destacada:", destacada);
-      console.log("  - Fecha exp:", fecha_expiracion);
-      console.log("  - Imagen:", imagen_url);
-
-      // ✅ Validación mejorada
-      if (!titulo || titulo.trim() === "") {
-        console.log("❌ Validación falló: título vacío");
-        return res.status(400).json({
-          error: "El título es requerido y no puede estar vacío",
-        });
-      }
-
-      if (!contenido || contenido.trim() === "") {
-        console.log("❌ Validación falló: contenido vacío");
-        return res.status(400).json({
-          error: "El contenido es requerido y no puede estar vacío",
-        });
-      }
-
-      // ✅ Convertir destacada a boolean correctamente
-      const esDestacada =
-        destacada === "on" || destacada === "true" || destacada === true;
-
-      console.log("✅ Validación pasada, insertando en BD...");
-
-      // ✅ Insertar en base de datos
-      const [result] = await pool.execute(
-        `INSERT INTO publicaciones (admin_id, titulo, contenido, destacada, fecha_expiracion, imagen_url) 
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [
-          adminId,
-          titulo.trim(),
-          contenido.trim(),
-          esDestacada,
-          fecha_expiracion || null,
-          imagen_url,
-        ]
-      );
-
-      console.log("✅ Publicación creada con ID:", result.insertId);
-
-      res.status(201).json({
-        message: "Publicación creada exitosamente",
-        publicacionId: result.insertId,
-        imagen_url: imagen_url,
-        destacada: esDestacada,
-      });
-    } catch (error) {
-      console.error("❌ Error completo creando publicación:", error);
-      res.status(500).json({
-        error: "Error interno del servidor",
-        details:
-          process.env.NODE_ENV === "development" ? error.message : undefined,
-      });
-    }
-  }
-);
-
-// ✅ Obtener publicaciones (modificada para incluir imagen_url)
-app.get("/api/publicaciones", async (req, res) => {
-  try {
-    let query = `
-      SELECT p.*, u.username as admin_nombre 
-      FROM publicaciones p 
-      JOIN usuarios u ON p.admin_id = u.id 
-    `;
-
-    // Si no es admin, solo mostrar publicaciones activas y no expiradas
-    const sessionId = req.headers.authorization?.replace("Bearer ", "");
-    let isAdmin = false;
-
-    if (sessionId) {
-      const [sessions] = await pool.execute(
-        `SELECT u.rol FROM sesiones s 
-         JOIN usuarios u ON s.usuario_id = u.id 
-         WHERE s.id = ? AND s.activa = TRUE AND s.fecha_expiracion > NOW()`,
-        [sessionId]
-      );
-
-      if (sessions.length > 0 && sessions[0].rol === "admin") {
-        isAdmin = true;
-      }
-    }
-
-    if (!isAdmin) {
-      query +=
-        " WHERE p.activa = TRUE AND (p.fecha_expiracion IS NULL OR p.fecha_expiracion > CURDATE())";
-    }
-
-    query += " ORDER BY p.destacada DESC, p.fecha_creacion DESC";
-
-    const [publicaciones] = await pool.execute(query);
-
-    console.log(`📋 Devolviendo ${publicaciones.length} publicaciones`);
-    res.json(publicaciones);
-  } catch (error) {
-    console.error("❌ Error obteniendo publicaciones:", error);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// ======================
-// OTRAS RUTAS (sin cambios)
-// ======================
-
 app.get("/api/auth/me", authenticateUser, (req, res) => {
   res.json({
     user: {
@@ -456,29 +256,69 @@ app.get("/api/auth/me", authenticateUser, (req, res) => {
   });
 });
 
-// RUTAS DE POSTS (sin cambios)
+// ======================
+// RUTAS DE POSTS CON VOTACIONES
+// ======================
+
+// ✅ Obtener posts con información de votos del usuario
 app.get("/api/posts", async (req, res) => {
   try {
-    const [posts] = await pool.execute(
-      `SELECT p.*, u.username, u.email,
-              (p.votos_positivos - p.votos_negativos) as score,
-              COUNT(c.id) as comentarios_count
-       FROM posts p 
-       JOIN usuarios u ON p.usuario_id = u.id 
-       LEFT JOIN comentarios c ON p.id = c.post_id AND c.activo = TRUE
-       WHERE p.activo = TRUE 
-       GROUP BY p.id
-       ORDER BY p.fecha_creacion DESC 
-       LIMIT 20`
-    );
+    const sessionId = req.headers.authorization?.replace("Bearer ", "");
+    let userId = null;
 
+    // Obtener ID del usuario si está autenticado
+    if (sessionId) {
+      const [sessions] = await pool.execute(
+        "SELECT usuario_id FROM sesiones WHERE id = ? AND activa = TRUE AND fecha_expiracion > NOW()",
+        [sessionId]
+      );
+
+      if (sessions.length > 0) {
+        userId = sessions[0].usuario_id;
+      }
+    }
+
+    let query = `
+      SELECT p.*, u.username, u.email,
+             (p.votos_positivos - p.votos_negativos) as score,
+             COUNT(DISTINCT c.id) as comentarios_count
+    `;
+
+    // Si hay usuario autenticado, incluir su voto
+    if (userId) {
+      query += `, v.tipo as voto_usuario`;
+    }
+
+    query += `
+      FROM posts p 
+      JOIN usuarios u ON p.usuario_id = u.id 
+      LEFT JOIN comentarios c ON p.id = c.post_id AND c.activo = TRUE
+    `;
+
+    if (userId) {
+      query += ` LEFT JOIN votaciones v ON p.id = v.post_id AND v.usuario_id = ${userId}`;
+    }
+
+    query += `
+      WHERE p.activo = TRUE 
+      GROUP BY p.id
+      ORDER BY p.fecha_creacion DESC 
+      LIMIT 20
+    `;
+
+    const [posts] = await pool.execute(query);
+
+    console.log(
+      `📋 Devolviendo ${posts.length} posts con información de votos`
+    );
     res.json(posts);
   } catch (error) {
-    console.error("Error obteniendo posts:", error);
+    console.error("❌ Error obteniendo posts:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });
 
+// ✅ Crear post
 app.post(
   "/api/posts",
   authenticateUser,
@@ -510,9 +350,416 @@ app.post(
   }
 );
 
-// ✅ AGREGAR ESTAS RUTAS AL server.js (después de las rutas de tickets existentes)
+// ======================
+// RUTAS DE VOTACIÓN (ESTILO REDDIT)
+// ======================
 
-// ✅ NUEVA RUTA: Responder ticket - SOLO ADMINS/SECRETARIAS
+// ✅ Votar en posts
+app.post("/api/posts/:id/vote", authenticateUser, async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id);
+    const userId = req.user.user_id;
+    const { tipo } = req.body; // 'positivo' o 'negativo'
+
+    console.log("🗳️ Procesando voto:", {
+      postId,
+      userId,
+      tipo,
+      username: req.user.username,
+    });
+
+    // Validar tipo de voto
+    if (!["positivo", "negativo"].includes(tipo)) {
+      return res.status(400).json({
+        error: "Tipo de voto inválido. Debe ser 'positivo' o 'negativo'",
+      });
+    }
+
+    // Verificar que el post existe
+    const [posts] = await pool.execute(
+      "SELECT id, votos_positivos, votos_negativos FROM posts WHERE id = ? AND activo = TRUE",
+      [postId]
+    );
+
+    if (posts.length === 0) {
+      return res.status(404).json({ error: "Post no encontrado" });
+    }
+
+    const post = posts[0];
+
+    // Verificar si el usuario ya votó en este post
+    const [votosExistentes] = await pool.execute(
+      "SELECT tipo FROM votaciones WHERE usuario_id = ? AND post_id = ?",
+      [userId, postId]
+    );
+
+    let mensaje = "";
+    let nuevoScore = 0;
+
+    if (votosExistentes.length === 0) {
+      // ✅ PRIMER VOTO DEL USUARIO
+      console.log("✅ Primer voto del usuario");
+
+      // Insertar nuevo voto
+      await pool.execute(
+        "INSERT INTO votaciones (usuario_id, post_id, tipo) VALUES (?, ?, ?)",
+        [userId, postId, tipo]
+      );
+
+      // Actualizar contadores en la tabla posts
+      if (tipo === "positivo") {
+        await pool.execute(
+          "UPDATE posts SET votos_positivos = votos_positivos + 1 WHERE id = ?",
+          [postId]
+        );
+        nuevoScore = post.votos_positivos + 1 - post.votos_negativos;
+        mensaje = "Voto positivo agregado";
+      } else {
+        await pool.execute(
+          "UPDATE posts SET votos_negativos = votos_negativos + 1 WHERE id = ?",
+          [postId]
+        );
+        nuevoScore = post.votos_positivos - (post.votos_negativos + 1);
+        mensaje = "Voto negativo agregado";
+      }
+    } else {
+      const votoAnterior = votosExistentes[0].tipo;
+
+      if (votoAnterior === tipo) {
+        // ✅ QUITAR VOTO (usuario hace clic en el mismo botón)
+        console.log("❌ Quitando voto anterior");
+
+        await pool.execute(
+          "DELETE FROM votaciones WHERE usuario_id = ? AND post_id = ?",
+          [userId, postId]
+        );
+
+        if (tipo === "positivo") {
+          await pool.execute(
+            "UPDATE posts SET votos_positivos = votos_positivos - 1 WHERE id = ?",
+            [postId]
+          );
+          nuevoScore = post.votos_positivos - 1 - post.votos_negativos;
+          mensaje = "Voto positivo removido";
+        } else {
+          await pool.execute(
+            "UPDATE posts SET votos_negativos = votos_negativos - 1 WHERE id = ?",
+            [postId]
+          );
+          nuevoScore = post.votos_positivos - (post.votos_negativos - 1);
+          mensaje = "Voto negativo removido";
+        }
+      } else {
+        // ✅ CAMBIAR VOTO (de positivo a negativo o viceversa)
+        console.log("🔄 Cambiando voto:", votoAnterior, "→", tipo);
+
+        await pool.execute(
+          "UPDATE votaciones SET tipo = ? WHERE usuario_id = ? AND post_id = ?",
+          [tipo, userId, postId]
+        );
+
+        if (votoAnterior === "positivo" && tipo === "negativo") {
+          // Era positivo, ahora negativo
+          await pool.execute(
+            "UPDATE posts SET votos_positivos = votos_positivos - 1, votos_negativos = votos_negativos + 1 WHERE id = ?",
+            [postId]
+          );
+          nuevoScore = post.votos_positivos - 1 - (post.votos_negativos + 1);
+          mensaje = "Voto cambiado a negativo";
+        } else {
+          // Era negativo, ahora positivo
+          await pool.execute(
+            "UPDATE posts SET votos_positivos = votos_positivos + 1, votos_negativos = votos_negativos - 1 WHERE id = ?",
+            [postId]
+          );
+          nuevoScore = post.votos_positivos + 1 - (post.votos_negativos - 1);
+          mensaje = "Voto cambiado a positivo";
+        }
+      }
+    }
+
+    // Obtener el estado actual del voto del usuario
+    const [votoActual] = await pool.execute(
+      "SELECT tipo FROM votaciones WHERE usuario_id = ? AND post_id = ?",
+      [userId, postId]
+    );
+
+    console.log(
+      "✅ Voto procesado exitosamente:",
+      mensaje,
+      "Score:",
+      nuevoScore
+    );
+
+    res.json({
+      message: mensaje,
+      nuevoScore: nuevoScore,
+      votoUsuario: votoActual.length > 0 ? votoActual[0].tipo : null,
+    });
+  } catch (error) {
+    console.error("❌ Error procesando voto:", error);
+    res.status(500).json({
+      error: "Error interno del servidor",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+// ✅ Obtener votos de un post específico
+app.get("/api/posts/:id/votes", async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id);
+
+    // Obtener estadísticas de votos
+    const [stats] = await pool.execute(
+      `SELECT 
+        COUNT(CASE WHEN tipo = 'positivo' THEN 1 END) as votos_positivos,
+        COUNT(CASE WHEN tipo = 'negativo' THEN 1 END) as votos_negativos
+       FROM votaciones 
+       WHERE post_id = ?`,
+      [postId]
+    );
+
+    const estadisticas = stats[0] || { votos_positivos: 0, votos_negativos: 0 };
+    const score = estadisticas.votos_positivos - estadisticas.votos_negativos;
+
+    res.json({
+      votos_positivos: estadisticas.votos_positivos,
+      votos_negativos: estadisticas.votos_negativos,
+      score: score,
+    });
+  } catch (error) {
+    console.error("❌ Error obteniendo votos:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// ✅ Obtener voto actual del usuario en un post
+app.get("/api/posts/:id/my-vote", authenticateUser, async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id);
+    const userId = req.user.user_id;
+
+    const [votos] = await pool.execute(
+      "SELECT tipo FROM votaciones WHERE usuario_id = ? AND post_id = ?",
+      [userId, postId]
+    );
+
+    res.json({
+      voto: votos.length > 0 ? votos[0].tipo : null,
+    });
+  } catch (error) {
+    console.error("❌ Error obteniendo voto del usuario:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// ======================
+// RUTAS DE COMENTARIOS
+// ======================
+
+// ✅ Obtener comentarios de un post
+app.get("/api/posts/:id/comments", async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id);
+
+    const [comentarios] = await pool.execute(
+      `SELECT c.*, u.username 
+       FROM comentarios c 
+       JOIN usuarios u ON c.usuario_id = u.id 
+       WHERE c.post_id = ? AND c.activo = TRUE 
+       ORDER BY c.fecha_creacion ASC`,
+      [postId]
+    );
+
+    console.log(
+      `📝 Devolviendo ${comentarios.length} comentarios para post ${postId}`
+    );
+    res.json(comentarios);
+  } catch (error) {
+    console.error("❌ Error obteniendo comentarios:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// ✅ Crear comentario en un post
+app.post("/api/posts/:id/comments", authenticateUser, async (req, res) => {
+  try {
+    const postId = parseInt(req.params.id);
+    const userId = req.user.user_id;
+    const { contenido } = req.body;
+
+    console.log("💬 Creando comentario:", {
+      postId,
+      userId,
+      contenido: contenido.substring(0, 50) + "...",
+    });
+
+    // Validaciones
+    if (!contenido || contenido.trim() === "") {
+      return res.status(400).json({
+        error: "El contenido del comentario es requerido",
+      });
+    }
+
+    if (contenido.length > 500) {
+      return res.status(400).json({
+        error: "El comentario no puede exceder 500 caracteres",
+      });
+    }
+
+    // Verificar que el post existe
+    const [posts] = await pool.execute(
+      "SELECT id FROM posts WHERE id = ? AND activo = TRUE",
+      [postId]
+    );
+
+    if (posts.length === 0) {
+      return res.status(404).json({ error: "Post no encontrado" });
+    }
+
+    // Insertar comentario
+    const [result] = await pool.execute(
+      "INSERT INTO comentarios (post_id, usuario_id, contenido) VALUES (?, ?, ?)",
+      [postId, userId, contenido.trim()]
+    );
+
+    console.log("✅ Comentario creado con ID:", result.insertId);
+
+    res.status(201).json({
+      message: "Comentario creado exitosamente",
+      comentarioId: result.insertId,
+    });
+  } catch (error) {
+    console.error("❌ Error creando comentario:", error);
+    res.status(500).json({
+      error: "Error interno del servidor",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+// ======================
+// RUTAS DE TICKETS CON TEMA
+// ======================
+
+// ✅ Crear ticket - SOLO ESTUDIANTES CON TEMA
+app.post("/api/tickets", authenticateUser, requireStudent, async (req, res) => {
+  try {
+    const { titulo, mensaje, tema, prioridad = "media" } = req.body;
+    const userId = req.user.user_id;
+    const nombre = req.user.username;
+
+    console.log("📝 Creando ticket:", {
+      titulo,
+      mensaje,
+      tema,
+      prioridad,
+      userId,
+      nombre,
+    });
+
+    // Validaciones
+    if (!mensaje || mensaje.trim() === "") {
+      return res.status(400).json({
+        error: "El mensaje es requerido",
+      });
+    }
+
+    if (!tema || tema.trim() === "") {
+      return res.status(400).json({
+        error: "El tema es requerido",
+      });
+    }
+
+    // Verificar que el tema sea válido
+    const temasValidos = [
+      "materia",
+      "practicas",
+      "certificados",
+      "matricula",
+      "notas",
+      "tramites",
+      "becas",
+      "otro",
+    ];
+
+    if (!temasValidos.includes(tema)) {
+      return res.status(400).json({
+        error: "Tema inválido. Temas permitidos: " + temasValidos.join(", "),
+      });
+    }
+
+    // Insertar con el nuevo campo tema
+    const [result] = await pool.execute(
+      "INSERT INTO tickets (usuario_id, nombre, titulo, mensaje, tema, prioridad, estado) VALUES (?, ?, ?, ?, ?, ?, 'abierto')",
+      [userId, nombre, titulo || "Solicitud general", mensaje, tema, prioridad]
+    );
+
+    console.log("✅ Ticket creado con ID:", result.insertId);
+
+    res.status(201).json({
+      message: "Ticket creado exitosamente",
+      ticketId: result.insertId,
+      tema: tema,
+    });
+  } catch (error) {
+    console.error("❌ Error creando ticket:", error);
+    res.status(500).json({
+      error: "Error interno del servidor",
+      details:
+        process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+// ✅ Obtener tickets incluye tema
+app.get("/api/tickets", authenticateUser, async (req, res) => {
+  try {
+    let query = `
+      SELECT t.*, u.username as usuario_nombre 
+      FROM tickets t 
+      JOIN usuarios u ON t.usuario_id = u.id 
+    `;
+    let params = [];
+
+    console.log(
+      "📋 Obteniendo tickets para usuario:",
+      req.user.username,
+      "rol:",
+      req.user.rol
+    );
+
+    if (["estudiante", "usuario"].includes(req.user.rol)) {
+      // Estudiantes solo ven sus propios tickets
+      query += " WHERE t.usuario_id = ?";
+      params.push(req.user.user_id);
+      console.log("👨‍🎓 Mostrando tickets del estudiante:", req.user.user_id);
+    } else if (["admin", "secretaria"].includes(req.user.rol)) {
+      // Admins y secretarias ven todos los tickets
+      console.log("📋 Mostrando todos los tickets para", req.user.rol);
+    } else {
+      return res.status(403).json({
+        error: "Rol no autorizado para ver tickets",
+        userRole: req.user.rol,
+      });
+    }
+
+    query += " ORDER BY t.fecha_creacion DESC";
+
+    const [tickets] = await pool.execute(query, params);
+
+    console.log(`✅ Devolviendo ${tickets.length} tickets`);
+    res.json(tickets);
+  } catch (error) {
+    console.error("❌ Error obteniendo tickets:", error);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// ✅ Responder ticket - SOLO ADMINS/SECRETARIAS
 app.post(
   "/api/tickets/:id/respond",
   authenticateUser,
@@ -598,7 +845,7 @@ app.post(
   }
 );
 
-// ✅ NUEVA RUTA: Obtener respuestas de un ticket
+// ✅ Obtener respuestas de un ticket
 app.get("/api/tickets/:id/responses", authenticateUser, async (req, res) => {
   try {
     const ticketId = req.params.id;
@@ -606,7 +853,7 @@ app.get("/api/tickets/:id/responses", authenticateUser, async (req, res) => {
     // Verificar que el usuario puede ver este ticket
     let canView = false;
 
-    if (req.user.rol === "estudiante") {
+    if (["estudiante", "usuario"].includes(req.user.rol)) {
       // Estudiantes solo pueden ver respuestas de sus propios tickets
       const [tickets] = await pool.execute(
         "SELECT id FROM tickets WHERE id = ? AND usuario_id = ?",
@@ -648,47 +895,120 @@ app.get("/api/tickets/:id/responses", authenticateUser, async (req, res) => {
   }
 });
 
-// ✅ ACTUALIZAR LA RUTA EXISTENTE DE TICKETS PARA INCLUIR fecha_respuesta
-// Reemplazar la ruta GET /api/tickets existente con esta versión mejorada:
+// ======================
+// RUTAS DE PUBLICACIONES
+// ======================
 
-app.get("/api/tickets", authenticateUser, async (req, res) => {
+// ✅ Crear publicación con imagen - SOLO ADMINS
+app.post(
+  "/api/publicaciones",
+  authenticateUser,
+  requireAdmin,
+  upload.single("imagen"),
+  async (req, res) => {
+    try {
+      console.log("📝 Petición recibida para crear publicación");
+      console.log("📄 Body:", req.body);
+      console.log("📷 File:", req.file ? req.file.filename : "Sin archivo");
+      console.log("👤 Usuario:", req.user.user_id, req.user.username);
+
+      const { titulo, contenido, destacada, fecha_expiracion } = req.body;
+      const adminId = req.user.user_id;
+      const imagen_url = req.file ? `/uploads/${req.file.filename}` : null;
+
+      // Validación mejorada
+      if (!titulo || titulo.trim() === "") {
+        console.log("❌ Validación falló: título vacío");
+        return res.status(400).json({
+          error: "El título es requerido y no puede estar vacío",
+        });
+      }
+
+      if (!contenido || contenido.trim() === "") {
+        console.log("❌ Validación falló: contenido vacío");
+        return res.status(400).json({
+          error: "El contenido es requerido y no puede estar vacío",
+        });
+      }
+
+      // Convertir destacada a boolean correctamente
+      const esDestacada =
+        destacada === "on" || destacada === "true" || destacada === true;
+
+      console.log("✅ Validación pasada, insertando en BD...");
+
+      // Insertar en base de datos
+      const [result] = await pool.execute(
+        `INSERT INTO publicaciones (admin_id, titulo, contenido, destacada, fecha_expiracion, imagen_url) 
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          adminId,
+          titulo.trim(),
+          contenido.trim(),
+          esDestacada,
+          fecha_expiracion || null,
+          imagen_url,
+        ]
+      );
+
+      console.log("✅ Publicación creada con ID:", result.insertId);
+
+      res.status(201).json({
+        message: "Publicación creada exitosamente",
+        publicacionId: result.insertId,
+        imagen_url: imagen_url,
+        destacada: esDestacada,
+      });
+    } catch (error) {
+      console.error("❌ Error completo creando publicación:", error);
+      res.status(500).json({
+        error: "Error interno del servidor",
+        details:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
+      });
+    }
+  }
+);
+
+// ✅ Obtener publicaciones
+app.get("/api/publicaciones", async (req, res) => {
   try {
     let query = `
-      SELECT t.*, u.username as usuario_nombre 
-      FROM tickets t 
-      JOIN usuarios u ON t.usuario_id = u.id 
+      SELECT p.*, u.username as admin_nombre 
+      FROM publicaciones p 
+      JOIN usuarios u ON p.admin_id = u.id 
     `;
-    let params = [];
 
-    console.log(
-      "📋 Obteniendo tickets para usuario:",
-      req.user.username,
-      "rol:",
-      req.user.rol
-    );
+    // Si no es admin, solo mostrar publicaciones activas y no expiradas
+    const sessionId = req.headers.authorization?.replace("Bearer ", "");
+    let isAdmin = false;
 
-    if (req.user.rol === "estudiante") {
-      // Estudiantes solo ven sus propios tickets
-      query += " WHERE t.usuario_id = ?";
-      params.push(req.user.user_id);
-      console.log("👨‍🎓 Mostrando tickets del estudiante:", req.user.user_id);
-    } else if (["admin", "secretaria"].includes(req.user.rol)) {
-      // Admins y secretarias ven todos los tickets
-      console.log("📋 Mostrando todos los tickets para", req.user.rol);
-    } else {
-      return res
-        .status(403)
-        .json({ error: "Rol no autorizado para ver tickets" });
+    if (sessionId) {
+      const [sessions] = await pool.execute(
+        `SELECT u.rol FROM sesiones s 
+         JOIN usuarios u ON s.usuario_id = u.id 
+         WHERE s.id = ? AND s.activa = TRUE AND s.fecha_expiracion > NOW()`,
+        [sessionId]
+      );
+
+      if (sessions.length > 0 && sessions[0].rol === "admin") {
+        isAdmin = true;
+      }
     }
 
-    query += " ORDER BY t.fecha_creacion DESC";
+    if (!isAdmin) {
+      query +=
+        " WHERE p.activa = TRUE AND (p.fecha_expiracion IS NULL OR p.fecha_expiracion > CURDATE())";
+    }
 
-    const [tickets] = await pool.execute(query, params);
+    query += " ORDER BY p.destacada DESC, p.fecha_creacion DESC";
 
-    console.log(`✅ Devolviendo ${tickets.length} tickets`);
-    res.json(tickets);
+    const [publicaciones] = await pool.execute(query);
+
+    console.log(`📋 Devolviendo ${publicaciones.length} publicaciones`);
+    res.json(publicaciones);
   } catch (error) {
-    console.error("❌ Error obteniendo tickets:", error);
+    console.error("❌ Error obteniendo publicaciones:", error);
     res.status(500).json({ error: "Error interno del servidor" });
   }
 });

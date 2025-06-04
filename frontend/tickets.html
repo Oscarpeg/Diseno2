@@ -49,7 +49,7 @@
           </div>
 
           <!-- 🎓 PANEL PARA ESTUDIANTES - Crear tickets -->
-          <section id="estudiante-panel" class="hidden mb-8">
+          <section id="estudiante-panel" class="mb-8">
             <div
               class="bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-lg shadow-lg"
             >
@@ -70,6 +70,7 @@
                   </h3>
 
                   <form id="form-ticket" class="space-y-4">
+                    <!-- Título -->
                     <div>
                       <label
                         for="titulo"
@@ -89,6 +90,38 @@
                       </p>
                     </div>
 
+                    <!-- Campo Tema -->
+                    <div>
+                      <label
+                        for="tema"
+                        class="block text-sm font-medium text-gray-700 mb-2"
+                      >
+                        Tema de la solicitud <span class="text-red-500">*</span>
+                      </label>
+                      <select
+                        id="tema"
+                        class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      >
+                        <option value="">Selecciona un tema...</option>
+                        <option value="materia">📚 Materias y Horarios</option>
+                        <option value="practicas">
+                          🔬 Prácticas Profesionales
+                        </option>
+                        <option value="certificados">
+                          📄 Certificados y Documentos
+                        </option>
+                        <option value="matricula">🎓 Matrícula y Pagos</option>
+                        <option value="notas">📊 Notas y Calificaciones</option>
+                        <option value="tramites">
+                          📋 Trámites Administrativos
+                        </option>
+                        <option value="becas">💰 Becas y Ayudas</option>
+                        <option value="otro">❓ Otro</option>
+                      </select>
+                    </div>
+
+                    <!-- Descripción -->
                     <div>
                       <label
                         for="mensaje"
@@ -104,6 +137,10 @@
                         rows="5"
                         required
                       ></textarea>
+                      <p class="mt-1 text-sm text-gray-500">
+                        Incluye toda la información relevante para que puedan
+                        ayudarte mejor
+                      </p>
                     </div>
 
                     <button
@@ -124,7 +161,7 @@
             </div>
           </section>
 
-          <!-- 📋 PANEL PARA SECRETARIAS - Solo ver tickets -->
+          <!-- 📋 PANEL PARA SECRETARIAS -->
           <section id="secretaria-panel" class="hidden mb-8">
             <div
               class="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg shadow-lg"
@@ -147,28 +184,28 @@
                     </h3>
                     <div class="flex space-x-2">
                       <button
-                        onclick="filtrarTickets('todos')"
+                        onclick="filtrarPorEstado('todos')"
                         class="px-3 py-1 bg-gray-200 rounded text-sm hover:bg-gray-300"
                         id="btn-todos"
                       >
                         Todos
                       </button>
                       <button
-                        onclick="filtrarTickets('abierto')"
+                        onclick="filtrarPorEstado('abierto')"
                         class="px-3 py-1 bg-green-200 rounded text-sm hover:bg-green-300"
                         id="btn-abiertos"
                       >
                         Abiertos
                       </button>
                       <button
-                        onclick="filtrarTickets('en_proceso')"
+                        onclick="filtrarPorEstado('en_proceso')"
                         class="px-3 py-1 bg-yellow-200 rounded text-sm hover:bg-yellow-300"
                         id="btn-proceso"
                       >
                         En Proceso
                       </button>
                       <button
-                        onclick="filtrarTickets('cerrado')"
+                        onclick="filtrarPorEstado('cerrado')"
                         class="px-3 py-1 bg-red-200 rounded text-sm hover:bg-red-300"
                         id="btn-cerrados"
                       >
@@ -188,7 +225,7 @@
             </div>
           </section>
 
-          <!-- 👑 PANEL PARA ADMINS - Control total -->
+          <!-- 👑 PANEL PARA ADMINS - ✅ MEJORADO CON FILTROS POR CATEGORÍA -->
           <section id="admin-tickets-panel" class="hidden mb-8">
             <div
               class="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg shadow-lg"
@@ -205,6 +242,7 @@
                 </div>
 
                 <div class="bg-white rounded-lg p-6 text-gray-800">
+                  <!-- ✅ CONTADORES GENERALES -->
                   <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
                     <div class="bg-green-50 p-4 rounded-lg text-center">
                       <div
@@ -242,6 +280,153 @@
                       </div>
                       <div class="text-sm text-blue-800">Total</div>
                     </div>
+                  </div>
+
+                  <!-- ✅ NUEVO: FILTROS POR ESTADO -->
+                  <div class="mb-4">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-2">
+                      📊 Filtrar por Estado:
+                    </h4>
+                    <div class="flex flex-wrap gap-2">
+                      <button
+                        onclick="filtrarPorEstado('todos')"
+                        class="px-3 py-1 bg-blue-500 text-white rounded text-sm hover:bg-blue-600"
+                        id="btn-admin-todos"
+                      >
+                        📋 Todos
+                      </button>
+                      <button
+                        onclick="filtrarPorEstado('abierto')"
+                        class="px-3 py-1 bg-green-200 text-green-800 rounded text-sm hover:bg-green-300"
+                        id="btn-admin-abiertos"
+                      >
+                        🟢 Abiertos
+                      </button>
+                      <button
+                        onclick="filtrarPorEstado('en_proceso')"
+                        class="px-3 py-1 bg-yellow-200 text-yellow-800 rounded text-sm hover:bg-yellow-300"
+                        id="btn-admin-proceso"
+                      >
+                        🟡 En Proceso
+                      </button>
+                      <button
+                        onclick="filtrarPorEstado('cerrado')"
+                        class="px-3 py-1 bg-red-200 text-red-800 rounded text-sm hover:bg-red-300"
+                        id="btn-admin-cerrados"
+                      >
+                        🔴 Cerrados
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- ✅ NUEVO: FILTROS POR CATEGORÍA/TEMA -->
+                  <div class="mb-6 border-t pt-4">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-2">
+                      🏷️ Filtrar por Categoría:
+                    </h4>
+                    <div
+                      class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2"
+                    >
+                      <button
+                        onclick="filtrarPorTema('todos')"
+                        class="px-2 py-1 bg-gray-500 text-white rounded text-xs hover:bg-gray-600"
+                        id="tema-todos"
+                      >
+                        📂 Todas
+                      </button>
+                      <button
+                        onclick="filtrarPorTema('materia')"
+                        class="px-2 py-1 bg-purple-200 text-purple-800 rounded text-xs hover:bg-purple-300"
+                        id="tema-materia"
+                      >
+                        📚 Materias
+                        <span class="block text-xs" id="count-materia">0</span>
+                      </button>
+                      <button
+                        onclick="filtrarPorTema('practicas')"
+                        class="px-2 py-1 bg-indigo-200 text-indigo-800 rounded text-xs hover:bg-indigo-300"
+                        id="tema-practicas"
+                      >
+                        🔬 Prácticas
+                        <span class="block text-xs" id="count-practicas"
+                          >0</span
+                        >
+                      </button>
+                      <button
+                        onclick="filtrarPorTema('certificados')"
+                        class="px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs hover:bg-blue-300"
+                        id="tema-certificados"
+                      >
+                        📄 Certificados
+                        <span class="block text-xs" id="count-certificados"
+                          >0</span
+                        >
+                      </button>
+                      <button
+                        onclick="filtrarPorTema('matricula')"
+                        class="px-2 py-1 bg-green-200 text-green-800 rounded text-xs hover:bg-green-300"
+                        id="tema-matricula"
+                      >
+                        🎓 Matrícula
+                        <span class="block text-xs" id="count-matricula"
+                          >0</span
+                        >
+                      </button>
+                      <button
+                        onclick="filtrarPorTema('notas')"
+                        class="px-2 py-1 bg-yellow-200 text-yellow-800 rounded text-xs hover:bg-yellow-300"
+                        id="tema-notas"
+                      >
+                        📊 Notas
+                        <span class="block text-xs" id="count-notas">0</span>
+                      </button>
+                      <button
+                        onclick="filtrarPorTema('tramites')"
+                        class="px-2 py-1 bg-orange-200 text-orange-800 rounded text-xs hover:bg-orange-300"
+                        id="tema-tramites"
+                      >
+                        📋 Trámites
+                        <span class="block text-xs" id="count-tramites">0</span>
+                      </button>
+                      <button
+                        onclick="filtrarPorTema('becas')"
+                        class="px-2 py-1 bg-pink-200 text-pink-800 rounded text-xs hover:bg-pink-300"
+                        id="tema-becas"
+                      >
+                        💰 Becas
+                        <span class="block text-xs" id="count-becas">0</span>
+                      </button>
+                      <button
+                        onclick="filtrarPorTema('otro')"
+                        class="px-2 py-1 bg-gray-200 text-gray-800 rounded text-xs hover:bg-gray-300"
+                        id="tema-otro"
+                      >
+                        ❓ Otro
+                        <span class="block text-xs" id="count-otro">0</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- ✅ INDICADOR DE FILTRO ACTIVO -->
+                  <div
+                    id="filtro-activo"
+                    class="mb-4 p-2 bg-blue-50 rounded text-sm text-blue-800 hidden"
+                  >
+                    <span id="filtro-texto">Mostrando todos los tickets</span>
+                    <button
+                      onclick="limpiarFiltros()"
+                      class="ml-2 text-blue-600 hover:text-blue-800 underline"
+                    >
+                      ✕ Limpiar filtros
+                    </button>
+                  </div>
+
+                  <div class="text-sm text-gray-600 mb-4">
+                    <p>
+                      <strong>💡 Instrucciones:</strong> Usa los filtros de
+                      arriba para organizar tickets. Haz clic en cualquier
+                      ticket para responder.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -332,6 +517,14 @@
             <!-- Contenido del ticket se genera aquí -->
           </div>
 
+          <!-- Sección para respuestas existentes -->
+          <div id="respuestas-existentes" class="mt-6 border-t pt-4">
+            <h4 class="font-semibold mb-3">💬 Respuestas</h4>
+            <div id="lista-respuestas">
+              <!-- Las respuestas se cargan aquí -->
+            </div>
+          </div>
+
           <!-- Sección para responder (solo secretarias y admins) -->
           <div id="respuesta-section" class="hidden mt-6 border-t pt-4">
             <h4 class="font-semibold mb-3">💬 Responder al Ticket</h4>
@@ -371,7 +564,9 @@
     <script src="js/simple-role.js"></script>
 
     <script>
-      let currentFilter = "todos";
+      // ✅ VARIABLES GLOBALES MEJORADAS
+      let currentEstadoFilter = "todos";
+      let currentTemaFilter = "todos";
       let allTickets = [];
       let currentTicketId = null;
 
@@ -379,6 +574,7 @@
         console.log("🚀 Iniciando sistema de tickets...");
 
         if (!apiClient.sessionId) {
+          console.log("❌ No hay sesión, redirigiendo...");
           window.location.href = "index.html";
           return;
         }
@@ -393,53 +589,90 @@
           const user = apiClient.getCurrentUser();
           console.log("👤 Usuario actual:", user);
 
-          if (user && user.rol === "estudiante") {
-            mostrarPanelEstudiante();
-          } else if (user && user.rol === "secretaria") {
-            mostrarPanelSecretaria();
-          } else if (user && user.rol === "admin") {
-            mostrarPanelAdmin();
+          if (!user) {
+            try {
+              const apiUser = await apiClient.getUserInfo();
+              verificarYMostrarPorRol(apiUser);
+            } catch (error) {
+              console.error("❌ Error obteniendo usuario de API:", error);
+              mostrarPanelEstudiante();
+            }
           } else {
-            console.error("❌ Rol no reconocido:", user?.rol);
+            verificarYMostrarPorRol(user);
           }
         } catch (error) {
           console.error("❌ Error verificando rol:", error);
+          mostrarPanelEstudiante();
+        }
+      }
+
+      function verificarYMostrarPorRol(user) {
+        console.log("🔍 Verificando rol:", user.rol);
+
+        const rolesEstudiante = ["estudiante", "usuario", "student"];
+        const rolesAdmin = ["admin", "administrator"];
+        const rolesSecretaria = ["secretaria", "secretary"];
+
+        if (rolesEstudiante.includes(user.rol)) {
+          console.log("✅ Usuario es estudiante, mostrando panel...");
+          mostrarPanelEstudiante();
+        } else if (rolesSecretaria.includes(user.rol)) {
+          console.log("✅ Usuario es secretaria, mostrando panel...");
+          mostrarPanelSecretaria();
+        } else if (rolesAdmin.includes(user.rol)) {
+          console.log("✅ Usuario es admin, mostrando panel...");
+          mostrarPanelAdmin();
+        } else {
+          console.log(
+            `⚠️ Rol no reconocido: "${user.rol}", mostrando panel de estudiante por defecto`
+          );
+          mostrarPanelEstudiante();
         }
       }
 
       function mostrarPanelEstudiante() {
-        document.getElementById("estudiante-panel").classList.remove("hidden");
+        console.log("🎓 Mostrando panel de estudiante...");
+
+        document.getElementById("estudiante-panel")?.classList.remove("hidden");
+        document.getElementById("secretaria-panel")?.classList.add("hidden");
+        document.getElementById("admin-tickets-panel")?.classList.add("hidden");
+
         document.getElementById("tickets-title").textContent =
           "🎫 Mis Solicitudes";
         document.getElementById("tickets-description").textContent =
           "Envía solicitudes a la secretaría académica";
         document.getElementById("tickets-list-title").textContent =
           "📋 Mis Tickets";
-        console.log("✅ Panel de estudiante mostrado");
       }
 
       function mostrarPanelSecretaria() {
-        document.getElementById("secretaria-panel").classList.remove("hidden");
+        console.log("📋 Mostrando panel de secretaria...");
+        document.getElementById("secretaria-panel")?.classList.remove("hidden");
+        document.getElementById("estudiante-panel")?.classList.add("hidden");
+        document.getElementById("admin-tickets-panel")?.classList.add("hidden");
+
         document.getElementById("tickets-title").textContent =
           "📬 Solicitudes Estudiantiles";
         document.getElementById("tickets-description").textContent =
           "Gestiona las solicitudes de los estudiantes";
         document.getElementById("tickets-list-title").textContent =
           "📋 Tickets Recibidos";
-        console.log("✅ Panel de secretaria mostrado");
       }
 
       function mostrarPanelAdmin() {
+        console.log("👑 Mostrando panel de admin...");
         document
           .getElementById("admin-tickets-panel")
-          .classList.remove("hidden");
+          ?.classList.remove("hidden");
+        document.getElementById("estudiante-panel")?.classList.add("hidden");
+        document.getElementById("secretaria-panel")?.classList.add("hidden");
+
         document.getElementById("tickets-title").textContent =
           "👑 Administración de Tickets";
         document.getElementById("tickets-description").textContent =
           "Control total del sistema de solicitudes";
         document.getElementById("tickets-list-title").textContent =
           "📋 Todos los Tickets";
-        console.log("✅ Panel de admin mostrado");
       }
 
       function configurarEventListeners() {
@@ -462,7 +695,13 @@
 
       async function crearTicket() {
         const titulo = document.getElementById("titulo").value.trim() || null;
+        const tema = document.getElementById("tema").value.trim();
         const mensaje = document.getElementById("mensaje").value.trim();
+
+        if (!tema) {
+          mostrarMensajeForm("❌ Debes seleccionar un tema", "error");
+          return;
+        }
 
         if (!mensaje) {
           mostrarMensajeForm("❌ El mensaje es requerido", "error");
@@ -471,16 +710,54 @@
 
         try {
           mostrarMensajeForm("🔄 Enviando solicitud...", "info");
-          await apiClient.createTicket({ titulo, mensaje });
+
+          const ticketData = {
+            titulo: titulo || `Solicitud sobre ${getTemaNombre(tema)}`,
+            mensaje: `[${getTemaNombre(tema)}] ${mensaje}`,
+            tema: tema,
+          };
+
+          await apiClient.createTicket(ticketData);
 
           mostrarMensajeForm("✅ Solicitud enviada exitosamente", "success");
+
           document.getElementById("titulo").value = "";
+          document.getElementById("tema").value = "";
           document.getElementById("mensaje").value = "";
 
           await cargarTickets();
         } catch (error) {
+          console.error("❌ Error creando ticket:", error);
           mostrarMensajeForm(`❌ Error: ${error.message}`, "error");
         }
+      }
+
+      function getTemaNombre(valor) {
+        const temas = {
+          materia: "Materias y Horarios",
+          practicas: "Prácticas Profesionales",
+          certificados: "Certificados y Documentos",
+          matricula: "Matrícula y Pagos",
+          notas: "Notas y Calificaciones",
+          tramites: "Trámites Administrativos",
+          becas: "Becas y Ayudas",
+          otro: "Otro",
+        };
+        return temas[valor] || valor;
+      }
+
+      function getTemaIcon(valor) {
+        const iconos = {
+          materia: "📚",
+          practicas: "🔬",
+          certificados: "📄",
+          matricula: "🎓",
+          notas: "📊",
+          tramites: "📋",
+          becas: "💰",
+          otro: "❓",
+        };
+        return iconos[valor] || "📝";
       }
 
       async function cargarTickets() {
@@ -497,8 +774,12 @@
 
           if (loadingElement) loadingElement.style.display = "none";
 
+          // ✅ ACTUALIZAR CONTADORES
           actualizarContadores(tickets);
-          mostrarTickets(tickets);
+          actualizarContadoresPorTema(tickets);
+
+          // ✅ APLICAR FILTROS ACTIVOS
+          aplicarFiltros();
         } catch (error) {
           console.error("❌ Error cargando tickets:", error);
           if (loadingElement) loadingElement.style.display = "none";
@@ -508,12 +789,118 @@
         }
       }
 
+      // ✅ NUEVA FUNCIÓN: APLICAR FILTROS COMBINADOS
+      function aplicarFiltros() {
+        let ticketsFiltrados = allTickets;
+
+        // Filtrar por estado
+        if (currentEstadoFilter !== "todos") {
+          ticketsFiltrados = ticketsFiltrados.filter(
+            (ticket) => ticket.estado === currentEstadoFilter
+          );
+        }
+
+        // Filtrar por tema
+        if (currentTemaFilter !== "todos") {
+          ticketsFiltrados = ticketsFiltrados.filter(
+            (ticket) => ticket.tema === currentTemaFilter
+          );
+        }
+
+        mostrarTickets(ticketsFiltrados);
+        actualizarIndicadorFiltro();
+      }
+
+      // ✅ NUEVA FUNCIÓN: FILTRAR POR ESTADO
+      function filtrarPorEstado(estado) {
+        currentEstadoFilter = estado;
+
+        // Actualizar botones de estado
+        document.querySelectorAll('[id^="btn-"]').forEach((btn) => {
+          btn.classList.remove("bg-blue-500", "text-white");
+        });
+
+        const btnId =
+          estado === "todos" ? "btn-admin-todos" : `btn-admin-${estado}`;
+        document
+          .getElementById(btnId)
+          ?.classList.add("bg-blue-500", "text-white");
+
+        aplicarFiltros();
+      }
+
+      // ✅ NUEVA FUNCIÓN: FILTRAR POR TEMA
+      function filtrarPorTema(tema) {
+        currentTemaFilter = tema;
+
+        // Actualizar botones de tema
+        document.querySelectorAll('[id^="tema-"]').forEach((btn) => {
+          btn.classList.remove("ring-2", "ring-blue-500");
+        });
+
+        document
+          .getElementById(`tema-${tema}`)
+          ?.classList.add("ring-2", "ring-blue-500");
+
+        aplicarFiltros();
+      }
+
+      // ✅ NUEVA FUNCIÓN: LIMPIAR FILTROS
+      function limpiarFiltros() {
+        currentEstadoFilter = "todos";
+        currentTemaFilter = "todos";
+
+        // Resetear botones
+        document.querySelectorAll('[id^="btn-"]').forEach((btn) => {
+          btn.classList.remove("bg-blue-500", "text-white");
+        });
+        document
+          .getElementById("btn-admin-todos")
+          ?.classList.add("bg-blue-500", "text-white");
+
+        document.querySelectorAll('[id^="tema-"]').forEach((btn) => {
+          btn.classList.remove("ring-2", "ring-blue-500");
+        });
+        document
+          .getElementById("tema-todos")
+          ?.classList.add("ring-2", "ring-blue-500");
+
+        aplicarFiltros();
+      }
+
+      // ✅ NUEVA FUNCIÓN: ACTUALIZAR INDICADOR DE FILTRO
+      function actualizarIndicadorFiltro() {
+        const indicador = document.getElementById("filtro-activo");
+        const texto = document.getElementById("filtro-texto");
+
+        if (currentEstadoFilter === "todos" && currentTemaFilter === "todos") {
+          indicador.classList.add("hidden");
+          return;
+        }
+
+        let descripcion = "Mostrando tickets";
+
+        if (currentTemaFilter !== "todos") {
+          descripcion += ` de categoría "${getTemaNombre(currentTemaFilter)}"`;
+        }
+
+        if (currentEstadoFilter !== "todos") {
+          descripcion += ` con estado "${currentEstadoFilter.replace(
+            "_",
+            " "
+          )}"`;
+        }
+
+        texto.textContent = descripcion;
+        indicador.classList.remove("hidden");
+      }
+
       function mostrarTickets(tickets) {
         const listaElement = document.getElementById("ticket-lista");
 
         if (tickets.length === 0) {
           listaElement.innerHTML =
-            '<div class="text-center text-gray-500 py-8">No hay tickets</div>';
+            '<div class="text-center text-gray-500 py-8">No hay tickets que coincidan con los filtros</div>';
           return;
         }
 
@@ -537,52 +924,35 @@
             "es-ES"
           );
 
+          // ✅ MOSTRAR TEMA CON ICONO
+          const temaHTML = ticket.tema
+            ? `<span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded mr-2">
+                ${getTemaIcon(ticket.tema)} ${getTemaNombre(ticket.tema)}
+               </span>`
+            : "";
+
           item.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
-                        <h4 class="font-semibold text-lg">${
-                          ticket.titulo || "Solicitud General"
-                        }</h4>
-                        <span class="text-xs px-2 py-1 rounded-full bg-gray-200">
-                            ${ticket.estado.toUpperCase().replace("_", " ")}
-                        </span>
-                    </div>
-                    <p class="text-gray-700 mb-2 line-clamp-2">${
-                      ticket.mensaje
-                    }</p>
-                    <div class="text-sm text-gray-500">
-                        <span>👤 ${
-                          ticket.usuario_nombre || ticket.nombre
-                        }</span>
-                        <span class="float-right">📅 ${fecha}</span>
-                    </div>
-                `;
+            <div class="flex justify-between items-start mb-2">
+              <h4 class="font-semibold text-lg">${
+                ticket.titulo || "Solicitud General"
+              }</h4>
+              <span class="text-xs px-2 py-1 rounded-full bg-gray-200">
+                ${ticket.estado.toUpperCase().replace("_", " ")}
+              </span>
+            </div>
+            <div class="mb-2">
+              ${temaHTML}
+            </div>
+            <p class="text-gray-700 mb-2 line-clamp-2">${ticket.mensaje}</p>
+            <div class="text-sm text-gray-500">
+              <span>👤 ${ticket.usuario_nombre || ticket.nombre}</span>
+              <span class="float-right">📅 ${fecha}</span>
+            </div>
+          `;
 
           item.onclick = () => abrirModalTicket(ticket);
           listaElement.appendChild(item);
         });
-      }
-
-      function filtrarTickets(estado) {
-        currentFilter = estado;
-
-        // Actualizar botones activos
-        document.querySelectorAll('[id^="btn-"]').forEach((btn) => {
-          btn.classList.remove("bg-blue-500", "text-white");
-          btn.classList.add("bg-gray-200");
-        });
-
-        document
-          .getElementById(`btn-${estado === "todos" ? "todos" : estado}`)
-          .classList.add("bg-blue-500", "text-white");
-
-        let ticketsFiltrados = allTickets;
-        if (estado !== "todos") {
-          ticketsFiltrados = allTickets.filter(
-            (ticket) => ticket.estado === estado
-          );
-        }
-
-        mostrarTickets(ticketsFiltrados);
       }
 
       function actualizarContadores(tickets) {
@@ -605,7 +975,32 @@
         document.getElementById("count-total").textContent = contadores.total;
       }
 
-      function abrirModalTicket(ticket) {
+      // ✅ NUEVA FUNCIÓN: ACTUALIZAR CONTADORES POR TEMA
+      function actualizarContadoresPorTema(tickets) {
+        const user = apiClient.getCurrentUser();
+        if (user?.rol !== "admin") return;
+
+        const temas = [
+          "materia",
+          "practicas",
+          "certificados",
+          "matricula",
+          "notas",
+          "tramites",
+          "becas",
+          "otro",
+        ];
+
+        temas.forEach((tema) => {
+          const count = tickets.filter((ticket) => ticket.tema === tema).length;
+          const elemento = document.getElementById(`count-${tema}`);
+          if (elemento) {
+            elemento.textContent = count;
+          }
+        });
+      }
+
+      async function abrirModalTicket(ticket) {
         currentTicketId = ticket.id;
         const modal = document.getElementById("ticket-modal");
         const content = document.getElementById("ticket-content");
@@ -614,26 +1009,34 @@
         const fecha = new Date(ticket.fecha_creacion).toLocaleDateString(
           "es-ES"
         );
+        const temaHTML = ticket.tema
+          ? `<span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">
+              ${getTemaIcon(ticket.tema)} ${getTemaNombre(ticket.tema)}
+             </span>`
+          : "";
 
         content.innerHTML = `
-                <div class="border-l-4 border-blue-500 bg-blue-50 p-4 mb-4">
-                    <h4 class="font-bold text-lg mb-2">${
-                      ticket.titulo || "Solicitud General"
-                    }</h4>
-                    <p class="text-gray-700 mb-3">${ticket.mensaje}</p>
-                    <div class="text-sm text-gray-600">
-                        <span>👤 <strong>Solicitante:</strong> ${
-                          ticket.usuario_nombre || ticket.nombre
-                        }</span><br>
-                        <span>📅 <strong>Fecha:</strong> ${fecha}</span><br>
-                        <span>📊 <strong>Estado:</strong> 
-                            <span class="px-2 py-1 rounded text-xs bg-gray-200">
-                                ${ticket.estado.toUpperCase().replace("_", " ")}
-                            </span>
-                        </span>
-                    </div>
-                </div>
-            `;
+          <div class="border-l-4 border-blue-500 bg-blue-50 p-4 mb-4">
+            <h4 class="font-bold text-lg mb-2">${
+              ticket.titulo || "Solicitud General"
+            }</h4>
+            <div class="mb-2">${temaHTML}</div>
+            <p class="text-gray-700 mb-3">${ticket.mensaje}</p>
+            <div class="text-sm text-gray-600">
+              <span>👤 <strong>Solicitante:</strong> ${
+                ticket.usuario_nombre || ticket.nombre
+              }</span><br>
+              <span>📅 <strong>Fecha:</strong> ${fecha}</span><br>
+              <span>📊 <strong>Estado:</strong> 
+                <span class="px-2 py-1 rounded text-xs bg-gray-200">
+                  ${ticket.estado.toUpperCase().replace("_", " ")}
+                </span>
+              </span>
+            </div>
+          </div>
+        `;
+
+        await cargarRespuestasTicket(ticket.id);
 
         const user = apiClient.getCurrentUser();
         if (user && ["admin", "secretaria"].includes(user.rol)) {
@@ -643,9 +1046,49 @@
         modal.classList.remove("hidden");
       }
 
+      async function cargarRespuestasTicket(ticketId) {
+        try {
+          const respuestas = await apiClient.getTicketResponses(ticketId);
+          const listaRespuestas = document.getElementById("lista-respuestas");
+
+          if (respuestas.length === 0) {
+            listaRespuestas.innerHTML =
+              '<p class="text-gray-500 text-sm">No hay respuestas aún.</p>';
+            return;
+          }
+
+          listaRespuestas.innerHTML = "";
+          respuestas.forEach((respuesta) => {
+            const respuestaDiv = document.createElement("div");
+            respuestaDiv.className = "bg-gray-50 p-3 rounded mb-3";
+
+            const fecha = new Date(
+              respuesta.fecha_respuesta
+            ).toLocaleDateString("es-ES");
+            const hora = new Date(respuesta.fecha_respuesta).toLocaleTimeString(
+              "es-ES"
+            );
+
+            respuestaDiv.innerHTML = `
+              <div class="text-sm text-gray-600 mb-2">
+                <strong>👩‍💼 ${respuesta.admin_nombre}</strong> • ${fecha} a las ${hora}
+              </div>
+              <p class="text-gray-800">${respuesta.respuesta}</p>
+            `;
+
+            listaRespuestas.appendChild(respuestaDiv);
+          });
+        } catch (error) {
+          console.error("❌ Error cargando respuestas:", error);
+          document.getElementById("lista-respuestas").innerHTML =
+            '<p class="text-red-500 text-sm">Error cargando respuestas.</p>';
+        }
+      }
+
       function cerrarModal() {
         document.getElementById("ticket-modal").classList.add("hidden");
         currentTicketId = null;
+        document.getElementById("respuesta-texto").value = "";
       }
 
       async function responderTicket() {
@@ -669,8 +1112,10 @@
           );
           alert("✅ Respuesta enviada exitosamente");
 
-          cerrarModal();
+          await cargarRespuestasTicket(currentTicketId);
           await cargarTickets();
+
+          document.getElementById("respuesta-texto").value = "";
         } catch (error) {
           alert(`❌ Error: ${error.message}`);
         }
