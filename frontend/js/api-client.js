@@ -1,12 +1,20 @@
-// js/api-client.js - Cliente completo para conectar con la API
+// js/api-client.js - Cliente API corregido para votaciones
 
 class ApiClient {
   constructor() {
-    this.baseURL = "http://localhost:3000/api"; // Cambia por tu URL de producción
+    this.baseURL = "http://localhost:3000/api";
     this.sessionId = localStorage.getItem("sessionId");
+    this.pendingRequests = new Map(); // Para manejar requests duplicados
+
+    console.log("🚀 ApiClient inicializado");
+    console.log("🔗 Base URL:", this.baseURL);
+    console.log(
+      "🎫 Session ID:",
+      this.sessionId ? "Presente" : "No encontrado"
+    );
   }
 
-  // Método genérico para hacer peticiones
+  // Método genérico para hacer peticiones (con protección anti-duplicados)
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
     const config = {
@@ -22,12 +30,42 @@ class ApiClient {
       config.headers.Authorization = `Bearer ${this.sessionId}`;
     }
 
+    // ✅ EXCLUIR VOTACIONES del sistema anti-duplicados
+    const isVoteRequest = endpoint.includes("/vote");
+    const requestKey = !isVoteRequest
+      ? `${config.method || "GET"}-${url}-${JSON.stringify(config.body || {})}`
+      : null;
+
+    // Solo aplicar anti-duplicados a requests que NO sean de votación
+    if (!isVoteRequest && requestKey && this.pendingRequests.has(requestKey)) {
+      console.log("⚠️ Request duplicado detectado, usando request existente");
+      return this.pendingRequests.get(requestKey);
+    }
+
+    const requestPromise = this._executeRequest(url, config);
+
+    // Solo cachear requests que NO sean de votación
+    if (!isVoteRequest && requestKey) {
+      this.pendingRequests.set(requestKey, requestPromise);
+
+      // Limpiar el caché después de que termine la request
+      requestPromise.finally(() => {
+        this.pendingRequests.delete(requestKey);
+      });
+    }
+
+    return requestPromise;
+  }
+
+  // Método privado para ejecutar la request
+  async _executeRequest(url, config) {
+    console.log(`📡 Request: ${config.method || "GET"} ${url}`);
+
     try {
       const response = await fetch(url, config);
       const data = await response.json();
 
       if (!response.ok) {
-        // Si es error 401, cerrar sesión automáticamente
         if (response.status === 401) {
           this.logout();
           throw new Error("Sesión expirada. Inicia sesión nuevamente.");
@@ -35,9 +73,10 @@ class ApiClient {
         throw new Error(data.error || "Error en la petición");
       }
 
+      console.log("✅ Request exitosa:", data);
       return data;
     } catch (error) {
-      console.error("Error en petición:", error);
+      console.error("❌ Error en petición:", error);
       throw error;
     }
   }
@@ -82,12 +121,10 @@ class ApiClient {
   async getUserInfo() {
     try {
       const response = await this.request("/auth/me");
-      // Actualizar localStorage con info fresca
       localStorage.setItem("user", JSON.stringify(response.user));
       return response.user;
     } catch (error) {
       console.error("Error obteniendo info del usuario:", error);
-      // Si hay error de autenticación, cerrar sesión
       if (
         error.message.includes("401") ||
         error.message.includes("Sesión expirada")
@@ -96,20 +133,6 @@ class ApiClient {
       }
       throw error;
     }
-  }
-
-  async forgotPassword(email) {
-    return await this.request("/auth/forgot-password", {
-      method: "POST",
-      body: JSON.stringify({ email }),
-    });
-  }
-
-  async resetPassword(token, newPassword) {
-    return await this.request("/auth/reset-password", {
-      method: "POST",
-      body: JSON.stringify({ token, newPassword }),
-    });
   }
 
   // ==================
@@ -132,28 +155,45 @@ class ApiClient {
     return await this.request(`/posts/${postId}`);
   }
 
-  async updatePost(postId, postData) {
-    return await this.request(`/posts/${postId}`, {
-      method: "PUT",
-      body: JSON.stringify(postData),
-    });
-  }
-
-  async deletePost(postId) {
-    return await this.request(`/posts/${postId}`, {
-      method: "DELETE",
-    });
-  }
-
   // ==================
-  // MÉTODOS DE VOTACIÓN (NUEVOS)
+  // ✅ MÉTODOS DE VOTACIÓN CORREGIDOS
   // ==================
 
   async votePost(postId, tipo) {
-    return await this.request(`/posts/${postId}/vote`, {
+    // Crear URL única para cada votación (evitar caché)
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substr(2, 9);
+    const url = `${this.baseURL}/posts/${postId}/vote?_t=${timestamp}&_r=${randomId}`;
+
+    const config = {
       method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${this.sessionId}`,
+      },
       body: JSON.stringify({ tipo }),
-    });
+    };
+
+    console.log("🗳️ Enviando voto directo (sin caché):", { postId, tipo });
+
+    try {
+      const response = await fetch(url, config);
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          this.logout();
+          throw new Error("Sesión expirada. Inicia sesión nuevamente.");
+        }
+        throw new Error(data.error || "Error en la petición");
+      }
+
+      console.log("✅ Voto procesado exitosamente:", data);
+      return data;
+    } catch (error) {
+      console.error("❌ Error en voto:", error);
+      throw error;
+    }
   }
 
   async getPostVotes(postId) {
@@ -179,28 +219,8 @@ class ApiClient {
     });
   }
 
-  async updateComment(commentId, contenido) {
-    return await this.request(`/comments/${commentId}`, {
-      method: "PUT",
-      body: JSON.stringify({ contenido }),
-    });
-  }
-
-  async deleteComment(commentId) {
-    return await this.request(`/comments/${commentId}`, {
-      method: "DELETE",
-    });
-  }
-
-  async voteComment(commentId, tipo) {
-    return await this.request(`/comments/${commentId}/vote`, {
-      method: "POST",
-      body: JSON.stringify({ tipo }),
-    });
-  }
-
   // ==================
-  // MÉTODOS DE TICKETS (ACTUALIZADOS CON TEMA)
+  // MÉTODOS DE TICKETS
   // ==================
 
   async getTickets() {
@@ -229,21 +249,8 @@ class ApiClient {
     return await this.request(`/tickets/${ticketId}/responses`);
   }
 
-  async updateTicketStatus(ticketId, estado) {
-    return await this.request(`/tickets/${ticketId}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ estado }),
-    });
-  }
-
-  async deleteTicket(ticketId) {
-    return await this.request(`/tickets/${ticketId}`, {
-      method: "DELETE",
-    });
-  }
-
   // ==================
-  // MÉTODOS DE PUBLICACIONES (ACTUALIZADOS)
+  // MÉTODOS DE PUBLICACIONES
   // ==================
 
   async getPublicaciones() {
@@ -262,23 +269,6 @@ class ApiClient {
       method: "POST",
       headers: {}, // Sin Content-Type para FormData
       body: formData,
-    });
-  }
-
-  async getPublicacion(publicacionId) {
-    return await this.request(`/publicaciones/${publicacionId}`);
-  }
-
-  async updatePublicacion(publicacionId, publicacionData) {
-    return await this.request(`/publicaciones/${publicacionId}`, {
-      method: "PUT",
-      body: JSON.stringify(publicacionData),
-    });
-  }
-
-  async deletePublicacion(publicacionId) {
-    return await this.request(`/publicaciones/${publicacionId}`, {
-      method: "DELETE",
     });
   }
 
@@ -338,231 +328,6 @@ class ApiClient {
   }
 
   // ==================
-  // MÉTODOS DE BÚSQUEDA Y FILTROS
-  // ==================
-
-  async searchPosts(query, filters = {}) {
-    const params = new URLSearchParams({
-      q: query,
-      ...filters,
-    });
-    return await this.request(`/posts/search?${params}`);
-  }
-
-  async getPostsByUser(userId, page = 1, limit = 20) {
-    return await this.request(
-      `/users/${userId}/posts?page=${page}&limit=${limit}`
-    );
-  }
-
-  async getPostsByTag(tag, page = 1, limit = 20) {
-    return await this.request(`/posts/tag/${tag}?page=${page}&limit=${limit}`);
-  }
-
-  async getTicketsByTema(tema) {
-    return await this.request(`/tickets?tema=${tema}`);
-  }
-
-  async getTicketsByEstado(estado) {
-    return await this.request(`/tickets?estado=${estado}`);
-  }
-
-  // ==================
-  // MÉTODOS DE ESTADÍSTICAS (PARA ADMINS)
-  // ==================
-
-  async getStats() {
-    return await this.request("/stats");
-  }
-
-  async getTicketStats() {
-    return await this.request("/stats/tickets");
-  }
-
-  async getUserStats() {
-    return await this.request("/stats/users");
-  }
-
-  async getPostStats() {
-    return await this.request("/stats/posts");
-  }
-
-  async getVotingStats() {
-    return await this.request("/stats/votes");
-  }
-
-  // ==================
-  // MÉTODOS DE CONFIGURACIÓN (PARA ADMINS)
-  // ==================
-
-  async getConfig() {
-    return await this.request("/config");
-  }
-
-  async updateConfig(configData) {
-    return await this.request("/config", {
-      method: "PUT",
-      body: JSON.stringify(configData),
-    });
-  }
-
-  // ==================
-  // MÉTODOS DE NOTIFICACIONES
-  // ==================
-
-  async getNotifications() {
-    return await this.request("/notifications");
-  }
-
-  async markNotificationAsRead(notificationId) {
-    return await this.request(`/notifications/${notificationId}/read`, {
-      method: "PATCH",
-    });
-  }
-
-  async markAllNotificationsAsRead() {
-    return await this.request("/notifications/read-all", {
-      method: "PATCH",
-    });
-  }
-
-  // ==================
-  // MÉTODOS DE MODERACIÓN (PARA ADMINS)
-  // ==================
-
-  async moderatePost(postId, action, reason = "") {
-    return await this.request(`/posts/${postId}/moderate`, {
-      method: "POST",
-      body: JSON.stringify({ action, reason }),
-    });
-  }
-
-  async moderateComment(commentId, action, reason = "") {
-    return await this.request(`/comments/${commentId}/moderate`, {
-      method: "POST",
-      body: JSON.stringify({ action, reason }),
-    });
-  }
-
-  async banUser(userId, reason, duration = null) {
-    return await this.request(`/users/${userId}/ban`, {
-      method: "POST",
-      body: JSON.stringify({ reason, duration }),
-    });
-  }
-
-  async unbanUser(userId) {
-    return await this.request(`/users/${userId}/unban`, {
-      method: "POST",
-    });
-  }
-
-  // ==================
-  // MÉTODOS DE ARCHIVOS Y UPLOADS
-  // ==================
-
-  async uploadImage(file, folder = "general") {
-    const formData = new FormData();
-    formData.append("image", file);
-    formData.append("folder", folder);
-
-    return await this.request("/upload/image", {
-      method: "POST",
-      headers: {}, // Sin Content-Type para FormData
-      body: formData,
-    });
-  }
-
-  async deleteImage(imageUrl) {
-    return await this.request("/upload/delete", {
-      method: "DELETE",
-      body: JSON.stringify({ imageUrl }),
-    });
-  }
-
-  // ==================
-  // MÉTODOS DE REPORTES Y ANÁLISIS
-  // ==================
-
-  async reportContent(contentType, contentId, reason) {
-    return await this.request("/reports", {
-      method: "POST",
-      body: JSON.stringify({ contentType, contentId, reason }),
-    });
-  }
-
-  async getReports() {
-    return await this.request("/reports");
-  }
-
-  async resolveReport(reportId, action, notes = "") {
-    return await this.request(`/reports/${reportId}/resolve`, {
-      method: "POST",
-      body: JSON.stringify({ action, notes }),
-    });
-  }
-
-  // ==================
-  // MÉTODOS DE EXPORTACIÓN
-  // ==================
-
-  async exportData(type, format = "json", filters = {}) {
-    const params = new URLSearchParams({
-      type,
-      format,
-      ...filters,
-    });
-
-    const response = await fetch(`${this.baseURL}/export?${params}`, {
-      headers: {
-        Authorization: `Bearer ${this.sessionId}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error("Error exportando datos");
-    }
-
-    return response.blob();
-  }
-
-  // ==================
-  // MÉTODOS DE HEALTH CHECK
-  // ==================
-
-  async healthCheck() {
-    try {
-      const response = await fetch(
-        `${this.baseURL.replace("/api", "")}/health`
-      );
-      return await response.json();
-    } catch (error) {
-      return { status: "error", message: error.message };
-    }
-  }
-
-  async getDatabaseStatus() {
-    return await this.request("/system/database");
-  }
-
-  // ==================
-  // MÉTODOS DE DEBUGGING (SOLO DESARROLLO)
-  // ==================
-
-  async getDebugInfo() {
-    if (process?.env?.NODE_ENV !== "development") {
-      throw new Error("Debug info solo disponible en desarrollo");
-    }
-    return await this.request("/debug/info");
-  }
-
-  async clearCache() {
-    return await this.request("/debug/clear-cache", {
-      method: "POST",
-    });
-  }
-
-  // ==================
   // UTILIDADES DE FORMATO
   // ==================
 
@@ -611,4 +376,5 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = ApiClient;
 }
 
-console.log("🚀 API Client completo cargado exitosamente");
+console.log("🚀 API Client corregido cargado exitosamente");
+console.log("🛡️ Sistema de votaciones: SIN CACHÉ ✅");

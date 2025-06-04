@@ -1,4 +1,4 @@
-// js/foro.js - Foro con sistema de votación estilo Reddit COMPLETO
+// js/foro.js - Sistema de votación corregido y mejorado
 
 let currentPage = 1;
 let isLoading = false;
@@ -89,8 +89,9 @@ function crearPostElement(post) {
   const postDiv = document.createElement("div");
   postDiv.className = "post";
   postDiv.setAttribute("data-post-id", post.id);
+  postDiv.setAttribute("data-voting", "false"); // ✅ Estado de votación
 
-  // ✅ COLUMNA DE VOTOS ESTILO REDDIT
+  // ✅ COLUMNA DE VOTOS ESTILO REDDIT CORREGIDA
   const votesDiv = document.createElement("div");
   votesDiv.className = "votes";
 
@@ -106,13 +107,22 @@ function crearPostElement(post) {
   // ✅ Aplicar estilo según voto del usuario
   if (post.voto_usuario === "positivo") {
     btnUp.classList.add("text-orange-500", "font-bold", "bg-orange-50");
+    btnUp.setAttribute("title", "Quitar voto positivo");
   } else {
     btnUp.classList.add("text-gray-400", "hover:text-orange-500");
   }
 
+  // ✅ Event listener con protección anti-spam
   btnUp.onclick = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Verificar si ya se está votando
+    if (postDiv.dataset.voting === "true") {
+      console.log("⚠️ Ya se está procesando un voto");
+      return;
+    }
+
     votarPost(post.id, "positivo", postDiv);
   };
 
@@ -139,13 +149,22 @@ function crearPostElement(post) {
   // ✅ Aplicar estilo según voto del usuario
   if (post.voto_usuario === "negativo") {
     btnDown.classList.add("text-blue-500", "font-bold", "bg-blue-50");
+    btnDown.setAttribute("title", "Quitar voto negativo");
   } else {
     btnDown.classList.add("text-gray-400", "hover:text-blue-500");
   }
 
+  // ✅ Event listener con protección anti-spam
   btnDown.onclick = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Verificar si ya se está votando
+    if (postDiv.dataset.voting === "true") {
+      console.log("⚠️ Ya se está procesando un voto");
+      return;
+    }
+
     votarPost(post.id, "negativo", postDiv);
   };
 
@@ -235,96 +254,166 @@ function crearPostElement(post) {
   return postDiv;
 }
 
-// ✅ FUNCIÓN DE VOTACIÓN MEJORADA ESTILO REDDIT
+// ✅ FUNCIÓN DE VOTACIÓN COMPLETAMENTE CORREGIDA
 async function votarPost(postId, tipo, postElement) {
-  try {
-    console.log("🗳️ Votando:", { postId, tipo });
+  // Prevenir múltiples votos simultáneos
+  if (postElement.dataset.voting === "true") {
+    console.log("⚠️ Ya se está procesando un voto, ignorando...");
+    return;
+  }
 
-    // Obtener elementos
+  try {
+    console.log("🗳️ Iniciando votación:", { postId, tipo });
+
+    // Marcar como "votando" para prevenir clics múltiples
+    postElement.dataset.voting = "true";
+
+    // Obtener elementos de la UI
     const btnUp = postElement.querySelector(".upvote");
     const btnDown = postElement.querySelector(".downvote");
     const scoreElement = postElement.querySelector(".score");
 
-    // Deshabilitar botones temporalmente
+    // Deshabilitar botones y mostrar loading
     btnUp.disabled = true;
     btnDown.disabled = true;
+    btnUp.style.pointerEvents = "none";
+    btnDown.style.pointerEvents = "none";
 
     // Mostrar estado de carga
     const originalScore = scoreElement.textContent;
     scoreElement.textContent = "...";
+    scoreElement.classList.add("animate-pulse");
 
-    // Llamar a la API
+    // ✅ Llamar a la API de votación
     const response = await apiClient.votePost(postId, tipo);
 
-    console.log("✅ Respuesta del voto:", response);
+    console.log("✅ Respuesta de votación:", response);
 
-    // ✅ ACTUALIZAR UI SEGÚN RESPUESTA
-    // Limpiar estilos anteriores
-    btnUp.className =
-      "upvote text-2xl transition-colors duration-200 p-1 rounded hover:bg-gray-100";
-    btnDown.className =
-      "downvote text-2xl transition-colors duration-200 p-1 rounded hover:bg-gray-100";
+    // ✅ Actualizar UI según respuesta
+    actualizarUIVoto(postElement, response.votoUsuario, response.nuevoScore);
 
-    // Aplicar nuevos estilos según el voto actual
-    if (response.votoUsuario === "positivo") {
-      btnUp.classList.add("text-orange-500", "font-bold", "bg-orange-50");
-      btnDown.classList.add("text-gray-400", "hover:text-blue-500");
-    } else if (response.votoUsuario === "negativo") {
-      btnUp.classList.add("text-gray-400", "hover:text-orange-500");
-      btnDown.classList.add("text-blue-500", "font-bold", "bg-blue-50");
-    } else {
-      // No hay voto
-      btnUp.classList.add("text-gray-400", "hover:text-orange-500");
-      btnDown.classList.add("text-gray-400", "hover:text-blue-500");
-    }
+    // ✅ Mostrar feedback visual
+    mostrarFeedbackVoto(scoreElement, originalScore, response.nuevoScore);
 
-    // Actualizar score con animación
-    scoreElement.textContent = response.nuevoScore;
-
-    // ✅ ANIMACIÓN DE FEEDBACK
-    scoreElement.classList.add("scale-110");
-    if (response.nuevoScore > parseInt(originalScore)) {
-      scoreElement.classList.add("text-green-600");
-    } else if (response.nuevoScore < parseInt(originalScore)) {
-      scoreElement.classList.add("text-red-600");
-    }
-
-    setTimeout(() => {
-      scoreElement.classList.remove(
-        "scale-110",
-        "text-green-600",
-        "text-red-600"
-      );
-    }, 500);
-
-    // Habilitar botones nuevamente
-    btnUp.disabled = false;
-    btnDown.disabled = false;
-
-    // Mostrar mensaje temporal
-    mostrarMensajeVoto(response.message, postElement);
+    // Mostrar mensaje de éxito
+    mostrarMensajeVoto(response.message);
   } catch (error) {
     console.error("❌ Error al votar:", error);
 
-    // Restaurar score original en caso de error
-    const scoreElement = postElement.querySelector(".score");
-    if (scoreElement.textContent === "...") {
-      scoreElement.textContent = "?";
-    }
+    // Restaurar UI en caso de error
+    restaurarUIError(postElement);
 
-    // Habilitar botones en caso de error
-    const btnUp = postElement.querySelector(".upvote");
-    const btnDown = postElement.querySelector(".downvote");
-    btnUp.disabled = false;
-    btnDown.disabled = false;
-
-    // Mostrar error
+    // Mostrar error al usuario
     mostrarMensajeError("Error al votar: " + error.message);
+  } finally {
+    // ✅ Limpiar estado de votación después de un delay
+    setTimeout(() => {
+      postElement.dataset.voting = "false";
+
+      // Rehabilitar botones
+      const btnUp = postElement.querySelector(".upvote");
+      const btnDown = postElement.querySelector(".downvote");
+      const scoreElement = postElement.querySelector(".score");
+
+      if (btnUp && btnDown && scoreElement) {
+        btnUp.disabled = false;
+        btnDown.disabled = false;
+        btnUp.style.pointerEvents = "auto";
+        btnDown.style.pointerEvents = "auto";
+        scoreElement.classList.remove("animate-pulse");
+      }
+    }, 500); // Delay de 500ms para prevenir spam
   }
 }
 
-// ✅ FUNCIÓN PARA MOSTRAR MENSAJE DE VOTO TEMPORAL
-function mostrarMensajeVoto(mensaje, postElement) {
+// ✅ FUNCIÓN: Actualizar UI según el voto
+function actualizarUIVoto(postElement, votoUsuario, nuevoScore) {
+  const btnUp = postElement.querySelector(".upvote");
+  const btnDown = postElement.querySelector(".downvote");
+  const scoreElement = postElement.querySelector(".score");
+
+  // Limpiar estilos anteriores
+  btnUp.className =
+    "upvote text-2xl transition-colors duration-200 p-1 rounded hover:bg-gray-100";
+  btnDown.className =
+    "downvote text-2xl transition-colors duration-200 p-1 rounded hover:bg-gray-100";
+
+  // Aplicar nuevos estilos según el voto actual
+  if (votoUsuario === "positivo") {
+    btnUp.classList.add("text-orange-500", "font-bold", "bg-orange-50");
+    btnDown.classList.add("text-gray-400", "hover:text-blue-500");
+    btnUp.setAttribute("title", "Quitar voto positivo");
+    btnDown.setAttribute("title", "Votar negativo");
+  } else if (votoUsuario === "negativo") {
+    btnUp.classList.add("text-gray-400", "hover:text-orange-500");
+    btnDown.classList.add("text-blue-500", "font-bold", "bg-blue-50");
+    btnUp.setAttribute("title", "Votar positivo");
+    btnDown.setAttribute("title", "Quitar voto negativo");
+  } else {
+    // No hay voto
+    btnUp.classList.add("text-gray-400", "hover:text-orange-500");
+    btnDown.classList.add("text-gray-400", "hover:text-blue-500");
+    btnUp.setAttribute("title", "Votar positivo");
+    btnDown.setAttribute("title", "Votar negativo");
+  }
+
+  // Actualizar score
+  scoreElement.textContent = nuevoScore;
+}
+
+// ✅ FUNCIÓN: Mostrar feedback visual del voto
+function mostrarFeedbackVoto(scoreElement, scoreAnterior, scoreNuevo) {
+  const scoreNumAnterior = parseInt(scoreAnterior) || 0;
+  const scoreNumNuevo = parseInt(scoreNuevo) || 0;
+
+  // Animación según el cambio
+  scoreElement.classList.add(
+    "scale-110",
+    "transition-transform",
+    "duration-300"
+  );
+
+  if (scoreNumNuevo > scoreNumAnterior) {
+    scoreElement.classList.add("text-green-600");
+  } else if (scoreNumNuevo < scoreNumAnterior) {
+    scoreElement.classList.add("text-red-600");
+  } else {
+    scoreElement.classList.add("text-blue-600");
+  }
+
+  setTimeout(() => {
+    scoreElement.classList.remove(
+      "scale-110",
+      "text-green-600",
+      "text-red-600",
+      "text-blue-600",
+      "transition-transform",
+      "duration-300"
+    );
+  }, 500);
+}
+
+// ✅ FUNCIÓN: Restaurar UI en caso de error
+function restaurarUIError(postElement) {
+  const scoreElement = postElement.querySelector(".score");
+  const btnUp = postElement.querySelector(".upvote");
+  const btnDown = postElement.querySelector(".downvote");
+
+  if (scoreElement.textContent === "...") {
+    scoreElement.textContent = "?";
+    scoreElement.classList.add("text-red-500");
+    setTimeout(() => {
+      scoreElement.classList.remove("text-red-500");
+    }, 2000);
+  }
+
+  scoreElement.classList.remove("animate-pulse");
+  btnUp.style.pointerEvents = "auto";
+  btnDown.style.pointerEvents = "auto";
+}
+
+// ✅ FUNCIÓN: Mostrar mensaje de éxito
+function mostrarMensajeVoto(mensaje) {
   // Eliminar mensaje anterior si existe
   const existingMsg = document.querySelector(".vote-message");
   if (existingMsg) existingMsg.remove();
@@ -341,9 +430,6 @@ function mostrarMensajeVoto(mensaje, postElement) {
 
   document.body.appendChild(msgDiv);
 
-  // Animación de entrada
-  setTimeout(() => msgDiv.classList.add("transform", "translate-x-0"), 10);
-
   // Eliminar después de 2 segundos
   setTimeout(() => {
     msgDiv.style.opacity = "0";
@@ -352,7 +438,7 @@ function mostrarMensajeVoto(mensaje, postElement) {
   }, 2000);
 }
 
-// ✅ FUNCIÓN PARA MOSTRAR ERRORES
+// ✅ FUNCIÓN: Mostrar mensaje de error
 function mostrarMensajeError(mensaje) {
   const existingMsg = document.querySelector(".error-message");
   if (existingMsg) existingMsg.remove();
@@ -374,6 +460,10 @@ function mostrarMensajeError(mensaje) {
     setTimeout(() => msgDiv.remove(), 300);
   }, 3000);
 }
+
+// ==================
+// FUNCIONES DE COMENTARIOS (sin cambios)
+// ==================
 
 async function toggleComentarios(postId) {
   const comentariosDiv = document.getElementById(`comentarios-${postId}`);
@@ -468,13 +558,6 @@ async function agregarComentario(event, postId) {
     await toggleComentarios(postId);
 
     // Actualizar contador de comentarios en el post
-    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
-    const metaDiv = postElement.querySelector(".meta");
-    const comentariosButton = postElement.querySelector(
-      `button[onclick="toggleComentarios(${postId})"]`
-    );
-
-    // Obtener posts actualizados para tener el contador correcto
     setTimeout(async () => {
       try {
         currentPage = 1;
@@ -507,32 +590,6 @@ function cerrarSesion() {
   apiClient.logout();
 }
 
-// ✅ FUNCIONES DE UTILIDAD ADICIONALES
-
-// Función para manejar errores de red
-function handleNetworkError(error) {
-  if (error.message.includes("Failed to fetch")) {
-    mostrarMensajeError("Error de conexión. Verifica tu internet.");
-  } else if (error.message.includes("401")) {
-    mostrarMensajeError("Sesión expirada. Redirigiendo...");
-    setTimeout(() => {
-      window.location.href = "index.html";
-    }, 2000);
-  } else {
-    mostrarMensajeError(error.message);
-  }
-}
-
-// Función para formatear números grandes
-function formatNumber(num) {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + "M";
-  } else if (num >= 1000) {
-    return (num / 1000).toFixed(1) + "K";
-  }
-  return num.toString();
-}
-
 // Evento para detectar scroll y cargar más posts
 window.addEventListener("scroll", () => {
   if (
@@ -543,6 +600,6 @@ window.addEventListener("scroll", () => {
   }
 });
 
-console.log(
-  "🚀 Foro con sistema de votación estilo Reddit cargado exitosamente"
-);
+console.log("🚀 Sistema de foro con votaciones corregido cargado exitosamente");
+console.log("🗳️ Protección anti-spam: ✅");
+console.log("🎨 UI de votaciones mejorada: ✅");

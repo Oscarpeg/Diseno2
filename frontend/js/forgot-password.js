@@ -17,12 +17,12 @@ async function recuperarContrasena() {
 
     mensaje.innerHTML = `
       <div class="text-green-600">
-        ✅ Se ha generado un token de recuperación.<br>
+         Se ha generado un token de recuperación.<br>
         <small>En producción, este llegaría a tu email.</small>
       </div>
     `;
   } catch (error) {
-    mensaje.innerHTML = `<div class="text-red-600">❌ ${error.message}</div>`;
+    mensaje.innerHTML = `<div class="text-red-600"> ${error.message}</div>`;
   }
 }
 
@@ -109,7 +109,7 @@ async function cambiarContrasena() {
 
     resetMensaje.innerHTML = `
       <div class="text-green-600">
-        ✅ ${response.message}<br>
+         ${response.message}<br>
         <small>Redirigiendo al login...</small>
       </div>
     `;
@@ -119,7 +119,7 @@ async function cambiarContrasena() {
       window.location.href = "index.html";
     }, 2000);
   } catch (error) {
-    resetMensaje.innerHTML = `<div class="text-red-600">❌ ${error.message}</div>`;
+    resetMensaje.innerHTML = `<div class="text-red-600"> ${error.message}</div>`;
   }
 }
 

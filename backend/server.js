@@ -1,4 +1,4 @@
-// server.js - Sistema completo con roles, votaciones, tickets y todo
+// server.js - Sistema completo con roles, votaciones, tickets y todo - VERSIÓN CORREGIDA
 require("dotenv").config();
 const express = require("express");
 const mysql = require("mysql2/promise");
@@ -351,158 +351,159 @@ app.post(
 );
 
 // ======================
-// RUTAS DE VOTACIÓN (ESTILO REDDIT)
+// ✅ SISTEMA DE VOTACIÓN CORREGIDO
 // ======================
 
-// ✅ Votar en posts
 app.post("/api/posts/:id/vote", authenticateUser, async (req, res) => {
+  const connection = await pool.getConnection();
+
   try {
+    await connection.beginTransaction();
+
     const postId = parseInt(req.params.id);
     const userId = req.user.user_id;
-    const { tipo } = req.body; // 'positivo' o 'negativo'
+    const { tipo } = req.body;
 
     console.log("🗳️ Procesando voto:", {
       postId,
       userId,
       tipo,
       username: req.user.username,
+      timestamp: new Date().toISOString(),
     });
 
     // Validar tipo de voto
     if (!["positivo", "negativo"].includes(tipo)) {
+      await connection.rollback();
       return res.status(400).json({
         error: "Tipo de voto inválido. Debe ser 'positivo' o 'negativo'",
       });
     }
 
-    // Verificar que el post existe
-    const [posts] = await pool.execute(
-      "SELECT id, votos_positivos, votos_negativos FROM posts WHERE id = ? AND activo = TRUE",
+    // Verificar que el post existe y obtener datos actuales con lock
+    const [posts] = await connection.execute(
+      "SELECT id, votos_positivos, votos_negativos FROM posts WHERE id = ? AND activo = TRUE FOR UPDATE",
       [postId]
     );
 
     if (posts.length === 0) {
+      await connection.rollback();
       return res.status(404).json({ error: "Post no encontrado" });
     }
 
     const post = posts[0];
 
-    // Verificar si el usuario ya votó en este post
-    const [votosExistentes] = await pool.execute(
-      "SELECT tipo FROM votaciones WHERE usuario_id = ? AND post_id = ?",
+    // Verificar si el usuario ya votó con lock
+    const [votosExistentes] = await connection.execute(
+      "SELECT tipo FROM votaciones WHERE usuario_id = ? AND post_id = ? FOR UPDATE",
       [userId, postId]
     );
 
+    console.log("🔍 Votos existentes:", votosExistentes.length);
+
     let mensaje = "";
-    let nuevoScore = 0;
+    let nuevoVotosPositivos = post.votos_positivos;
+    let nuevoVotosNegativos = post.votos_negativos;
+    let votoActual = null;
 
     if (votosExistentes.length === 0) {
       // ✅ PRIMER VOTO DEL USUARIO
       console.log("✅ Primer voto del usuario");
 
-      // Insertar nuevo voto
-      await pool.execute(
+      await connection.execute(
         "INSERT INTO votaciones (usuario_id, post_id, tipo) VALUES (?, ?, ?)",
         [userId, postId, tipo]
       );
 
-      // Actualizar contadores en la tabla posts
       if (tipo === "positivo") {
-        await pool.execute(
-          "UPDATE posts SET votos_positivos = votos_positivos + 1 WHERE id = ?",
-          [postId]
-        );
-        nuevoScore = post.votos_positivos + 1 - post.votos_negativos;
+        nuevoVotosPositivos += 1;
         mensaje = "Voto positivo agregado";
       } else {
-        await pool.execute(
-          "UPDATE posts SET votos_negativos = votos_negativos + 1 WHERE id = ?",
-          [postId]
-        );
-        nuevoScore = post.votos_positivos - (post.votos_negativos + 1);
+        nuevoVotosNegativos += 1;
         mensaje = "Voto negativo agregado";
       }
+      votoActual = tipo;
     } else {
       const votoAnterior = votosExistentes[0].tipo;
 
       if (votoAnterior === tipo) {
-        // ✅ QUITAR VOTO (usuario hace clic en el mismo botón)
+        // ✅ QUITAR VOTO (mismo botón)
         console.log("❌ Quitando voto anterior");
 
-        await pool.execute(
+        await connection.execute(
           "DELETE FROM votaciones WHERE usuario_id = ? AND post_id = ?",
           [userId, postId]
         );
 
         if (tipo === "positivo") {
-          await pool.execute(
-            "UPDATE posts SET votos_positivos = votos_positivos - 1 WHERE id = ?",
-            [postId]
-          );
-          nuevoScore = post.votos_positivos - 1 - post.votos_negativos;
+          nuevoVotosPositivos -= 1;
           mensaje = "Voto positivo removido";
         } else {
-          await pool.execute(
-            "UPDATE posts SET votos_negativos = votos_negativos - 1 WHERE id = ?",
-            [postId]
-          );
-          nuevoScore = post.votos_positivos - (post.votos_negativos - 1);
+          nuevoVotosNegativos -= 1;
           mensaje = "Voto negativo removido";
         }
+        votoActual = null;
       } else {
-        // ✅ CAMBIAR VOTO (de positivo a negativo o viceversa)
+        // ✅ CAMBIAR VOTO
         console.log("🔄 Cambiando voto:", votoAnterior, "→", tipo);
 
-        await pool.execute(
+        await connection.execute(
           "UPDATE votaciones SET tipo = ? WHERE usuario_id = ? AND post_id = ?",
           [tipo, userId, postId]
         );
 
         if (votoAnterior === "positivo" && tipo === "negativo") {
-          // Era positivo, ahora negativo
-          await pool.execute(
-            "UPDATE posts SET votos_positivos = votos_positivos - 1, votos_negativos = votos_negativos + 1 WHERE id = ?",
-            [postId]
-          );
-          nuevoScore = post.votos_positivos - 1 - (post.votos_negativos + 1);
+          nuevoVotosPositivos -= 1;
+          nuevoVotosNegativos += 1;
           mensaje = "Voto cambiado a negativo";
         } else {
-          // Era negativo, ahora positivo
-          await pool.execute(
-            "UPDATE posts SET votos_positivos = votos_positivos + 1, votos_negativos = votos_negativos - 1 WHERE id = ?",
-            [postId]
-          );
-          nuevoScore = post.votos_positivos + 1 - (post.votos_negativos - 1);
+          nuevoVotosPositivos += 1;
+          nuevoVotosNegativos -= 1;
           mensaje = "Voto cambiado a positivo";
         }
+        votoActual = tipo;
       }
     }
 
-    // Obtener el estado actual del voto del usuario
-    const [votoActual] = await pool.execute(
-      "SELECT tipo FROM votaciones WHERE usuario_id = ? AND post_id = ?",
-      [userId, postId]
+    // Asegurar que los contadores no sean negativos
+    nuevoVotosPositivos = Math.max(0, nuevoVotosPositivos);
+    nuevoVotosNegativos = Math.max(0, nuevoVotosNegativos);
+
+    // Actualizar contadores en la tabla posts
+    await connection.execute(
+      "UPDATE posts SET votos_positivos = ?, votos_negativos = ? WHERE id = ?",
+      [nuevoVotosPositivos, nuevoVotosNegativos, postId]
     );
 
-    console.log(
-      "✅ Voto procesado exitosamente:",
+    await connection.commit();
+
+    const nuevoScore = nuevoVotosPositivos - nuevoVotosNegativos;
+
+    console.log("✅ Voto procesado exitosamente:", {
       mensaje,
-      "Score:",
-      nuevoScore
-    );
+      nuevoScore,
+      votoActual,
+      votosPositivos: nuevoVotosPositivos,
+      votosNegativos: nuevoVotosNegativos,
+    });
 
     res.json({
       message: mensaje,
       nuevoScore: nuevoScore,
-      votoUsuario: votoActual.length > 0 ? votoActual[0].tipo : null,
+      votoUsuario: votoActual,
+      votos_positivos: nuevoVotosPositivos,
+      votos_negativos: nuevoVotosNegativos,
     });
   } catch (error) {
+    await connection.rollback();
     console.error("❌ Error procesando voto:", error);
     res.status(500).json({
       error: "Error interno del servidor",
       details:
         process.env.NODE_ENV === "development" ? error.message : undefined,
     });
+  } finally {
+    connection.release();
   }
 });
 
@@ -663,15 +664,11 @@ app.post("/api/tickets", authenticateUser, requireStudent, async (req, res) => {
 
     // Validaciones
     if (!mensaje || mensaje.trim() === "") {
-      return res.status(400).json({
-        error: "El mensaje es requerido",
-      });
+      return res.status(400).json({ error: "El mensaje es requerido" });
     }
 
     if (!tema || tema.trim() === "") {
-      return res.status(400).json({
-        error: "El tema es requerido",
-      });
+      return res.status(400).json({ error: "El tema es requerido" });
     }
 
     // Verificar que el tema sea válido
@@ -800,16 +797,16 @@ app.post(
 
         // Crear tabla si no existe
         await pool.execute(`
-          CREATE TABLE ticket_respuestas (
-            id INT PRIMARY KEY AUTO_INCREMENT,
-            ticket_id INT NOT NULL,
-            admin_id INT NOT NULL,
-            respuesta TEXT NOT NULL,
-            fecha_respuesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
-            FOREIGN KEY (admin_id) REFERENCES usuarios(id) ON DELETE CASCADE
-          )
-        `);
+        CREATE TABLE ticket_respuestas (
+          id INT PRIMARY KEY AUTO_INCREMENT,
+          ticket_id INT NOT NULL,
+          admin_id INT NOT NULL,
+          respuesta TEXT NOT NULL,
+          fecha_respuesta TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (ticket_id) REFERENCES tickets(id) ON DELETE CASCADE,
+          FOREIGN KEY (admin_id) REFERENCES usuarios(id) ON DELETE CASCADE
+        )
+      `);
 
         console.log("✅ Tabla ticket_respuestas creada");
       }
@@ -940,7 +937,7 @@ app.post(
       // Insertar en base de datos
       const [result] = await pool.execute(
         `INSERT INTO publicaciones (admin_id, titulo, contenido, destacada, fecha_expiracion, imagen_url) 
-         VALUES (?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?)`,
         [
           adminId,
           titulo.trim(),
@@ -1015,7 +1012,8 @@ app.get("/api/publicaciones", async (req, res) => {
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`Servidor ejecutándose en puerto ${PORT}`);
-  console.log(`API disponible en http://localhost:${PORT}/api`);
-  console.log(`Roles disponibles: estudiante, admin, secretaria`);
+  console.log(`🚀 Servidor ejecutándose en puerto ${PORT}`);
+  console.log(`📡 API disponible en http://localhost:${PORT}/api`);
+  console.log(`👥 Roles disponibles: estudiante, admin, secretaria`);
+  console.log(`🗳️ Sistema de votaciones: CORREGIDO ✅`);
 });

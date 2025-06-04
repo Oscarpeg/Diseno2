@@ -10,18 +10,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  // ✅ NUEVO: Verificar rol y mostrar panel de admin si corresponde
+  //  NUEVO: Verificar rol y mostrar panel de admin si corresponde
   await verificarRolYMostrarPanel();
 
   console.log("✅ Sesión encontrada, cargando publicaciones...");
   await cargarPublicaciones();
 
-  // ✅ NUEVO: Configurar event listeners para el panel de admin
+  //  NUEVO: Configurar event listeners para el panel de admin
   configurarEventListeners();
 });
 
 // ==================
-// ✅ FUNCIONES NUEVAS PARA ADMIN
+//  FUNCIONES NUEVAS PARA ADMIN
 // ==================
 
 async function verificarRolYMostrarPanel() {
@@ -308,10 +308,6 @@ function mostrarMensaje(texto, tipo) {
   }
 }
 
-// ==================
-// TU FUNCIÓN ORIGINAL (conservada y mejorada)
-// ==================
-
 async function cargarPublicaciones() {
   console.log("📡 Iniciando carga de publicaciones...");
 
@@ -409,7 +405,7 @@ function mostrarPublicaciones(publicaciones) {
       console.warn("Error formateando fecha:", e);
     }
 
-    // ✅ NUEVO: Mostrar imagen si existe
+    // NUEVO: Mostrar imagen si existe
     const imagenHTML = pub.imagen_url
       ? `<img src="${pub.imagen_url}" alt="Imagen de la publicación" class="max-w-full h-64 object-cover rounded my-3">`
       : "";

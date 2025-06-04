@@ -36,7 +36,7 @@
 
     <div class="foro-bg">
       <main class="p-6">
-        <!-- 🔥 PANEL DE ADMINISTRADOR - OCULTO POR DEFECTO -->
+        <!--  PANEL DE ADMINISTRADOR - OCULTO POR DEFECTO -->
         <section id="admin-panel" class="hidden mb-8">
           <div
             class="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg shadow-lg"
@@ -155,7 +155,7 @@
                       type="submit"
                       class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors flex items-center"
                     >
-                      <span class="mr-2">🚀</span>
+                      <span class="mr-2"></span>
                       Publicar Anuncio
                     </button>
 
@@ -164,7 +164,7 @@
                       onclick="limpiarFormulario()"
                       class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-colors"
                     >
-                      🧹 Limpiar
+                      Limpiar
                     </button>
                   </div>
 
@@ -183,14 +183,13 @@
         <section id="publicaciones">
           <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-bold text-gray-800">
-              📢 Anuncios de la Secretaría
+              Anuncios de la Secretaría
             </h2>
             <div class="flex items-center space-x-4">
               <div class="text-sm text-gray-600">
                 <span
                   class="inline-block bg-yellow-500 text-white text-xs px-2 py-1 rounded"
-                  >📌</span
-                >
+                ></span>
                 = Publicación destacada
               </div>
               <button
@@ -198,7 +197,7 @@
                 onclick="cargarPublicaciones()"
                 class="hidden bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors"
               >
-                🔄 Actualizar
+                Actualizar
               </button>
             </div>
           </div>
@@ -207,8 +206,8 @@
             class="mb-6 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500"
           >
             <p class="text-blue-800">
-              <strong>ℹ️ Información:</strong> Aquí encontrarás todos los
-              anuncios oficiales de la secretaría académica.
+              <strong> Información:</strong> Aquí encontrarás todos los anuncios
+              oficiales de la secretaría académica.
             </p>
           </div>
 
@@ -232,7 +231,7 @@
 
     <script>
       document.addEventListener("DOMContentLoaded", async () => {
-        console.log("🚀 Iniciando publicaciones...");
+        console.log(" Iniciando publicaciones...");
 
         // Verificar autenticación
         if (!apiClient.sessionId) {
@@ -240,7 +239,7 @@
           return;
         }
 
-        // ✅ VERIFICAR ROL Y MOSTRAR PANEL SOLO A ADMINS
+        //  VERIFICAR ROL Y MOSTRAR PANEL SOLO A ADMINS
         await verificarRolYMostrarPanel();
 
         // Configurar event listeners
@@ -253,17 +252,17 @@
       async function verificarRolYMostrarPanel() {
         try {
           const user = apiClient.getCurrentUser();
-          console.log("👤 Usuario actual:", user);
+          console.log(" Usuario actual:", user);
 
           if (user && user.rol === "admin") {
-            console.log("👑 Usuario es admin, mostrando panel...");
+            console.log(" Usuario es admin, mostrando panel...");
             mostrarPanelAdmin();
           } else {
-            console.log("👨‍🎓 Usuario es estudiante, panel oculto");
+            console.log(" Usuario es estudiante, panel oculto");
             ocultarPanelAdmin();
           }
         } catch (error) {
-          console.error("❌ Error verificando rol:", error);
+          console.error(" Error verificando rol:", error);
           ocultarPanelAdmin();
         }
       }
@@ -274,7 +273,7 @@
 
         if (adminPanel) {
           adminPanel.classList.remove("hidden");
-          console.log("✅ Panel de admin mostrado");
+          console.log(" Panel de admin mostrado");
         }
 
         if (refreshButton) {
@@ -302,41 +301,41 @@
             e.preventDefault();
             await crearPublicacion();
           });
-          console.log("✅ Event listener configurado");
+          console.log(" Event listener configurado");
         }
       }
 
       async function crearPublicacion() {
-        console.log("🧪 Intentando crear publicación...");
+        console.log(" Intentando crear publicación...");
 
         const form = document.getElementById("form-publicacion");
         const formData = new FormData(form);
 
-        // ✅ DEBUGGING: Mostrar los datos que se van a enviar
-        console.log("📝 Datos del FormData:");
+        //  DEBUGGING: Mostrar los datos que se van a enviar
+        console.log(" Datos del FormData:");
         for (let [key, value] of formData.entries()) {
           console.log(`  ${key}:`, value);
         }
 
-        // ✅ VALIDACIÓN MANUAL (importante para debugging)
+        //  VALIDACIÓN MANUAL (importante para debugging)
         const titulo = formData.get("titulo");
         const contenido = formData.get("contenido");
 
-        console.log("🔍 Validación manual:");
+        console.log(" Validación manual:");
         console.log("  Título:", titulo);
         console.log("  Contenido:", contenido);
         console.log("  Título válido:", !!(titulo && titulo.trim()));
         console.log("  Contenido válido:", !!(contenido && contenido.trim()));
 
         if (!titulo || !titulo.trim() || !contenido || !contenido.trim()) {
-          mostrarMensaje("❌ Título y contenido son obligatorios", "error");
+          mostrarMensaje(" Título y contenido son obligatorios", "error");
           return;
         }
 
         try {
-          mostrarMensaje("🔄 Creando publicación...", "info");
+          mostrarMensaje(" Creando publicación...", "info");
 
-          console.log("📡 Enviando petición al servidor...");
+          console.log(" Enviando petición al servidor...");
           const response = await fetch(`${apiClient.baseURL}/publicaciones`, {
             method: "POST",
             headers: {
@@ -347,33 +346,33 @@
           });
 
           console.log(
-            "📡 Respuesta del servidor:",
+            " Respuesta del servidor:",
             response.status,
             response.statusText
           );
 
           if (!response.ok) {
             const errorData = await response.json();
-            console.error("❌ Error del servidor:", errorData);
+            console.error(" Error del servidor:", errorData);
             throw new Error(errorData.error || `Error ${response.status}`);
           }
 
           const result = await response.json();
-          console.log("✅ Publicación creada exitosamente:", result);
+          console.log(" Publicación creada exitosamente:", result);
 
-          mostrarMensaje("✅ Publicación creada exitosamente", "success");
+          mostrarMensaje(" Publicación creada exitosamente", "success");
           limpiarFormulario();
           await cargarPublicaciones();
         } catch (error) {
-          console.error("❌ Error creando publicación:", error);
-          mostrarMensaje(`❌ Error: ${error.message}`, "error");
+          console.error(" Error creando publicación:", error);
+          mostrarMensaje(` Error: ${error.message}`, "error");
         }
       }
 
       function limpiarFormulario() {
         document.getElementById("form-publicacion").reset();
         mostrarMensaje("", "");
-        console.log("🧹 Formulario limpiado");
+        console.log(" Formulario limpiado");
       }
 
       function mostrarMensaje(texto, tipo) {
@@ -397,7 +396,7 @@
           if (listaElement) listaElement.innerHTML = "";
 
           const publicaciones = await apiClient.getPublicaciones();
-          console.log(`✅ ${publicaciones.length} publicaciones cargadas`);
+          console.log(` ${publicaciones.length} publicaciones cargadas`);
 
           if (loadingElement) loadingElement.style.display = "none";
 
@@ -412,7 +411,7 @@
             item.className = "bg-white p-4 rounded shadow mb-4";
 
             const destacadaBadge = pub.destacada
-              ? '<span class="inline-block bg-yellow-500 text-white text-xs px-2 py-1 rounded mb-2">📌 DESTACADA</span><br>'
+              ? '<span class="inline-block bg-yellow-500 text-white text-xs px-2 py-1 rounded mb-2"> DESTACADA</span><br>'
               : "";
 
             const fechaCreacion = new Date(
@@ -433,17 +432,17 @@
                         }</p>
                         ${imagenHTML}
                         <div class="text-sm text-gray-500 border-t pt-2">
-                            <span>📝 Publicado por <strong>${
+                            <span> Publicado por <strong>${
                               pub.admin_nombre || "Administrador"
                             }</strong></span>
-                            <span class="float-right">📅 ${fechaCreacion}</span>
+                            <span class="float-right"> ${fechaCreacion}</span>
                         </div>
                     `;
 
             listaElement.appendChild(item);
           });
         } catch (error) {
-          console.error("❌ Error cargando publicaciones:", error);
+          console.error(" Error cargando publicaciones:", error);
           if (loadingElement) loadingElement.style.display = "none";
           if (listaElement) {
             listaElement.innerHTML = `<div class="text-center text-red-500 py-8">Error: ${error.message}</div>`;
