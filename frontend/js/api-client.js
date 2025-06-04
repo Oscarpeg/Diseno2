@@ -142,16 +142,27 @@ class ApiClient {
   // ✅ MÉTODO getPosts ACTUALIZADO en api-client.js
   // Reemplaza la función getPosts existente en tu archivo api-client.js
 
-  async getPosts(page = 1, limit = 20) {
-    console.log(`📡 Solicitando posts - Página: ${page}, Límite: ${limit}`);
+  // ✅ MÉTODO getPosts ACTUALIZADO para api-client.js
+  // Reemplazar el método getPosts existente
+
+  async getPosts(page = 1, limit = 20, sortBy = "popular") {
+    console.log(
+      `📡 Solicitando posts - Página: ${page}, Límite: ${limit}, Ordenamiento: ${sortBy}`
+    );
 
     try {
-      const response = await this.request(`/posts?page=${page}&limit=${limit}`);
+      // ✅ INCLUIR PARÁMETRO DE ORDENAMIENTO EN LA URL
+      const url = `/posts?page=${page}&limit=${limit}&sort=${sortBy}`;
+      const response = await this.request(url);
 
       // ✅ COMPATIBILIDAD: Si el servidor devuelve el formato nuevo, usarlo
       if (response.posts && response.pagination) {
         console.log(
-          `✅ Formato nuevo recibido: ${response.posts.length} posts, hasMore: ${response.pagination.hasMore}`
+          `✅ Formato nuevo recibido: ${
+            response.posts.length
+          } posts, hasMore: ${response.pagination.hasMore}, ordenamiento: ${
+            response.sorting?.current || sortBy
+          }`
         );
         return response;
       }
@@ -167,6 +178,10 @@ class ApiClient {
             hasMore: response.length >= limit, // Asumir que hay más si devuelve el límite completo
             postsPerPage: limit,
           },
+          sorting: {
+            current: sortBy,
+            available: ["popular", "recent", "controversial", "oldest"],
+          },
         };
       }
 
@@ -180,9 +195,41 @@ class ApiClient {
           hasMore: false,
           postsPerPage: limit,
         },
+        sorting: {
+          current: sortBy,
+          available: ["popular", "recent", "controversial", "oldest"],
+        },
       };
     } catch (error) {
       console.error("❌ Error en getPosts:", error);
+      throw error;
+    }
+  }
+
+  // ✅ AGREGAR MÉTODO PARA OBTENER ESTADÍSTICAS DE POSTS
+  async getPostsStats() {
+    console.log("📊 Solicitando estadísticas de posts...");
+
+    try {
+      const response = await this.request("/posts/stats");
+      console.log("✅ Estadísticas obtenidas:", response);
+      return response;
+    } catch (error) {
+      console.error("❌ Error obteniendo estadísticas:", error);
+      throw error;
+    }
+  }
+
+  // ✅ AGREGAR MÉTODO PARA OBTENER POSTS TRENDING (MÁS POPULARES DEL DÍA)
+  async getTrendingPosts(limit = 10) {
+    console.log(`📈 Solicitando posts trending (${limit})...`);
+
+    try {
+      const response = await this.request(`/posts/trending?limit=${limit}`);
+      console.log(`✅ ${response.posts?.length || 0} posts trending obtenidos`);
+      return response;
+    } catch (error) {
+      console.error("❌ Error obteniendo posts trending:", error);
       throw error;
     }
   }

@@ -1,8 +1,14 @@
-// js/foro.js - Sistema de votación y paginación corregidos
+// js/foro.js - Sistema completo con votación, paginación y ordenamiento por likes
 
 let currentPage = 1;
 let isLoading = false;
-let hasMorePosts = true; // ✅ NUEVA VARIABLE para controlar si hay más posts
+let hasMorePosts = true;
+
+// ✅ VARIABLES PARA ORDENAMIENTO
+let currentSorting = {
+  sortBy: "score", // "score", "date", "comments", "hot"
+  sortOrder: "desc", // "asc", "desc"
+};
 
 document.addEventListener("DOMContentLoaded", async () => {
   // Verificar autenticación
@@ -10,6 +16,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     window.location.href = "index.html";
     return;
   }
+
+  // Configurar ordenamiento inicial
+  actualizarIndicadorOrdenamiento("score", "desc");
+  actualizarBotonenesOrdenamiento("score");
 
   await cargarPosts();
 
@@ -22,6 +32,110 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 });
 
+// ==================
+// ✅ SISTEMA DE ORDENAMIENTO
+// ==================
+
+async function cambiarOrdenamiento() {
+  const sortSelect = document.getElementById("sort-select");
+  if (!sortSelect) return;
+
+  const [sortBy, sortOrder] = sortSelect.value.split("-");
+
+  console.log("📊 Cambiando ordenamiento:", sortBy, sortOrder);
+
+  currentSorting.sortBy = sortBy;
+  currentSorting.sortOrder = sortOrder;
+
+  // Resetear paginación
+  currentPage = 1;
+  hasMorePosts = true;
+
+  // Actualizar indicador visual
+  actualizarIndicadorOrdenamiento(sortBy, sortOrder);
+
+  // Recargar posts con nuevo ordenamiento
+  await cargarPosts();
+}
+
+async function filtroRapido(sortBy, sortOrder) {
+  console.log("⚡ Filtro rápido:", sortBy, sortOrder);
+
+  // Actualizar selector
+  const sortSelect = document.getElementById("sort-select");
+  if (sortSelect) {
+    sortSelect.value = `${sortBy}-${sortOrder}`;
+  }
+
+  // Actualizar variables
+  currentSorting.sortBy = sortBy;
+  currentSorting.sortOrder = sortOrder;
+
+  // Resetear paginación
+  currentPage = 1;
+  hasMorePosts = true;
+
+  // Actualizar botones activos
+  actualizarBotonenesOrdenamiento(sortBy);
+
+  // Actualizar indicador
+  actualizarIndicadorOrdenamiento(sortBy, sortOrder);
+
+  // Recargar posts
+  await cargarPosts();
+}
+
+function actualizarIndicadorOrdenamiento(sortBy, sortOrder) {
+  const sortInfo = document.getElementById("sort-info");
+  const indicator = document.getElementById("sorting-indicator");
+  const sortingText = document.getElementById("sorting-text");
+
+  const textos = {
+    "score-desc": "🔥 Mostrando posts más populares primero",
+    "score-asc": "📉 Mostrando posts menos populares primero",
+    "date-desc": "📅 Mostrando posts más recientes primero",
+    "date-asc": "📅 Mostrando posts más antiguos primero",
+    "comments-desc": "💬 Mostrando posts más comentados primero",
+    "hot-desc": "🌟 Mostrando posts trending (hot) primero",
+  };
+
+  const key = `${sortBy}-${sortOrder}`;
+  const texto = textos[key] || "📊 Ordenamiento personalizado";
+
+  if (sortInfo) sortInfo.textContent = texto;
+  if (sortingText) sortingText.textContent = texto;
+  if (indicator) indicator.classList.remove("hidden");
+}
+
+function actualizarBotonenesOrdenamiento(sortBy) {
+  // Limpiar todos los botones
+  document.querySelectorAll('[id^="btn-"]').forEach((btn) => {
+    btn.classList.remove(
+      "bg-orange-200",
+      "bg-blue-200",
+      "bg-purple-200",
+      "font-bold"
+    );
+  });
+
+  // Activar botón correspondiente
+  let btnActivo = null;
+  if (sortBy === "score") {
+    btnActivo = document.getElementById("btn-populares");
+    if (btnActivo) btnActivo.classList.add("bg-orange-200", "font-bold");
+  } else if (sortBy === "date") {
+    btnActivo = document.getElementById("btn-recientes");
+    if (btnActivo) btnActivo.classList.add("bg-blue-200", "font-bold");
+  } else if (sortBy === "hot") {
+    btnActivo = document.getElementById("btn-hot");
+    if (btnActivo) btnActivo.classList.add("bg-purple-200", "font-bold");
+  }
+}
+
+// ==================
+// CARGA Y PAGINACIÓN DE POSTS
+// ==================
+
 async function cargarPosts() {
   if (isLoading || !hasMorePosts) {
     console.log(
@@ -31,14 +145,20 @@ async function cargarPosts() {
   }
 
   isLoading = true;
-  console.log(`📄 Cargando página ${currentPage}...`);
+  console.log(
+    `📄 Cargando página ${currentPage} con ordenamiento: ${currentSorting.sortBy} ${currentSorting.sortOrder}`
+  );
 
   try {
-    // ✅ OBTENER RESPUESTA CON PAGINACIÓN
-    const response = await apiClient.getPosts(currentPage);
+    // ✅ INCLUIR PARÁMETROS DE ORDENAMIENTO
+    const response = await apiClient.getPosts(
+      currentPage,
+      20,
+      currentSorting.sortBy,
+      currentSorting.sortOrder
+    );
 
-    // ✅ MANEJAR NUEVA ESTRUCTURA DE RESPUESTA
-    const posts = response.posts || response; // Compatibilidad con versión antigua
+    const posts = response.posts || response;
     const pagination = response.pagination;
 
     const foroLista = document.getElementById("foro-lista");
@@ -62,21 +182,16 @@ async function cargarPosts() {
 
       currentPage++;
 
-      // ✅ ACTUALIZAR hasMorePosts basado en la respuesta del servidor
       if (pagination) {
         hasMorePosts = pagination.hasMore;
         console.log(
-          `📊 Paginación: ${pagination.currentPage}/${Math.ceil(
-            pagination.totalPosts / pagination.postsPerPage
-          )}, hasMore: ${hasMorePosts}`
+          `📊 Paginación: ${pagination.currentPage}, hasMore: ${hasMorePosts}, ordenado por: ${pagination.sortBy}`
         );
       } else {
-        // Método alternativo: si devuelve menos posts del límite, no hay más
         hasMorePosts = posts.length >= 20;
       }
     }
 
-    // ✅ MOSTRAR/OCULTAR BOTÓN "CARGAR MÁS"
     const loadMoreBtn = document.getElementById("load-more");
     if (loadMoreBtn) {
       if (hasMorePosts && posts.length > 0) {
@@ -146,34 +261,17 @@ function cargarMasPosts() {
   }
 }
 
-// ✅ MEJORAR EL EVENT LISTENER DE SCROLL
-let scrollTimeout;
-window.addEventListener("scroll", () => {
-  // ✅ DEBOUNCE para evitar múltiples llamadas
-  clearTimeout(scrollTimeout);
-  scrollTimeout = setTimeout(() => {
-    // ✅ VERIFICAR si estamos cerca del final Y si hay más posts
-    if (hasMorePosts && !isLoading) {
-      const scrollPosition = window.innerHeight + window.scrollY;
-      const documentHeight = document.body.offsetHeight;
-      const threshold = 1000; // 1000px antes del final
+// ==================
+// CREACIÓN DE ELEMENTOS DE POST
+// ==================
 
-      if (scrollPosition >= documentHeight - threshold) {
-        console.log("📄 Cerca del final, intentando cargar más posts...");
-        cargarMasPosts();
-      }
-    }
-  }, 150); // Esperar 150ms después del último scroll
-});
-
-// ✅ RESTO DEL CÓDIGO SIN CAMBIOS (crearPostElement, votarPost, etc.)
 function crearPostElement(post) {
   const postDiv = document.createElement("div");
   postDiv.className = "post";
   postDiv.setAttribute("data-post-id", post.id);
   postDiv.setAttribute("data-voting", "false");
 
-  // Columna de votos
+  // ✅ COLUMNA DE VOTOS ESTILO REDDIT
   const votesDiv = document.createElement("div");
   votesDiv.className = "votes";
 
@@ -203,10 +301,16 @@ function crearPostElement(post) {
     votarPost(post.id, "positivo", postDiv);
   };
 
-  // Score
+  // Score/Puntuación
   const scoreDiv = document.createElement("div");
   scoreDiv.className = "score text-lg font-bold text-gray-700 py-1 text-center";
   scoreDiv.textContent = post.score || 0;
+  scoreDiv.setAttribute(
+    "title",
+    `${post.votos_positivos || 0} votos positivos, ${
+      post.votos_negativos || 0
+    } votos negativos`
+  );
 
   // Botón downvote
   const btnDown = document.createElement("button");
@@ -318,7 +422,10 @@ function crearPostElement(post) {
   return postDiv;
 }
 
-// ✅ FUNCIÓN DE VOTACIÓN (sin cambios)
+// ==================
+// ✅ SISTEMA DE VOTACIÓN
+// ==================
+
 async function votarPost(postId, tipo, postElement) {
   if (postElement.dataset.voting === "true") {
     console.log("⚠️ Ya se está procesando un voto, ignorando...");
@@ -370,7 +477,6 @@ async function votarPost(postId, tipo, postElement) {
   }
 }
 
-// ✅ FUNCIONES AUXILIARES (sin cambios significativos)
 function actualizarUIVoto(postElement, votoUsuario, nuevoScore) {
   const btnUp = postElement.querySelector(".upvote");
   const btnDown = postElement.querySelector(".downvote");
@@ -494,7 +600,10 @@ function mostrarMensajeError(mensaje) {
   }, 3000);
 }
 
-// ✅ FUNCIONES DE COMENTARIOS (sin cambios)
+// ==================
+// SISTEMA DE COMENTARIOS
+// ==================
+
 async function toggleComentarios(postId) {
   const comentariosDiv = document.getElementById(`comentarios-${postId}`);
 
@@ -605,10 +714,34 @@ async function agregarComentario(event, postId) {
   }
 }
 
+// ==================
+// UTILIDADES
+// ==================
+
 function cerrarSesion() {
   apiClient.logout();
 }
 
-console.log("🚀 Sistema de foro con paginación corregida cargado exitosamente");
-console.log("📄 Scroll infinito controlado: ✅");
+// ✅ SCROLL INFINITO CON DEBOUNCE
+let scrollTimeout;
+window.addEventListener("scroll", () => {
+  clearTimeout(scrollTimeout);
+  scrollTimeout = setTimeout(() => {
+    if (hasMorePosts && !isLoading) {
+      const scrollPosition = window.innerHeight + window.scrollY;
+      const documentHeight = document.body.offsetHeight;
+      const threshold = 1000;
+
+      if (scrollPosition >= documentHeight - threshold) {
+        console.log("📄 Cerca del final, intentando cargar más posts...");
+        cargarMasPosts();
+      }
+    }
+  }, 150);
+});
+
+console.log("🚀 Sistema de foro completo cargado exitosamente");
 console.log("🗳️ Sistema de votaciones: ✅");
+console.log("📄 Paginación corregida: ✅");
+console.log("📊 Ordenamiento por likes: ✅");
+console.log("💬 Sistema de comentarios: ✅");

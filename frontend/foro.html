@@ -42,6 +42,37 @@
         <section id="foro" class="foro-reddit">
           <h2 class="text-xl font-bold mb-4">Foro de Dudas</h2>
 
+          <!-- ✅ AGREGAR ESTE CÓDIGO EN foro.html DESPUÉS DEL H2 "Foro de Dudas" y ANTES del formulario -->
+          <!-- Reemplaza la línea que dice <h2 class="text-xl font-bold mb-4">Foro de Dudas</h2> -->
+
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold">Foro de Dudas</h2>
+
+            <!-- ✅ NUEVO: Selector de ordenamiento -->
+            <div class="flex items-center space-x-2">
+              <label
+                for="sort-selector"
+                class="text-sm text-gray-600 font-medium"
+              >
+                Ordenar por:
+              </label>
+              <select
+                id="sort-selector"
+                onchange="cambiarOrdenamiento()"
+                class="bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="popular">🔥 Más populares</option>
+                <option value="recent">⏰ Más recientes</option>
+                <option value="controversial">⚡ Más controversiales</option>
+                <option value="oldest">📅 Más antiguos</option>
+              </select>
+
+              <!-- ✅ INDICADOR DE ORDENAMIENTO ACTIVO -->
+              <div id="sort-indicator" class="text-xs text-gray-500">
+                🔥 Populares
+              </div>
+            </div>
+          </div>
           <!-- Formulario para crear posts -->
           <form id="form-foro" class="mb-6 bg-white p-4 rounded shadow">
             <h3 class="font-semibold text-lg mb-4">Crear nueva publicación</h3>

@@ -262,18 +262,26 @@ app.get("/api/auth/me", authenticateUser, (req, res) => {
 
 // ✅ Obtener posts con información de votos del usuario
 // ✅ RUTA DE POSTS CON PAGINACIÓN CORREGIDA
+// ✅ RUTA DE POSTS CON ORDENAMIENTO POR SCORE - Reemplazar en backend/server.js
+
+// ✅ RUTA DE POSTS CON ORDENAMIENTO POR VOTOS - Reemplazar en backend/server.js
+// Reemplaza la ruta GET /api/posts existente (líneas aproximadamente 179-220)
+
 app.get("/api/posts", async (req, res) => {
   try {
     const sessionId = req.headers.authorization?.replace("Bearer ", "");
     let userId = null;
 
-    // Obtener parámetros de paginación
+    // Obtener parámetros de paginación y ordenamiento
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
 
+    // ✅ NUEVO: Parámetro de ordenamiento
+    const sortBy = req.query.sort || "popular"; // popular, recent, controversial
+
     console.log(
-      `📄 Solicitando posts - Página: ${page}, Límite: ${limit}, Offset: ${offset}`
+      `📄 Solicitando posts - Página: ${page}, Límite: ${limit}, Offset: ${offset}, Ordenamiento: ${sortBy}`
     );
 
     // Obtener ID del usuario si está autenticado
@@ -291,6 +299,7 @@ app.get("/api/posts", async (req, res) => {
     let query = `
       SELECT p.*, u.username, u.email,
              (p.votos_positivos - p.votos_negativos) as score,
+             (p.votos_positivos + p.votos_negativos) as total_votos,
              COUNT(DISTINCT c.id) as comentarios_count
     `;
 
@@ -312,13 +321,39 @@ app.get("/api/posts", async (req, res) => {
     query += `
       WHERE p.activo = TRUE 
       GROUP BY p.id
-      ORDER BY p.fecha_creacion DESC 
-      LIMIT ${limit} OFFSET ${offset}
     `;
 
+    // ✅ NUEVO: Sistema de ordenamiento dinámico
+    let orderBy = "";
+    switch (sortBy) {
+      case "popular":
+        // Ordenar por score (votos positivos - negativos), luego por fecha
+        orderBy = "ORDER BY score DESC, p.fecha_creacion DESC";
+        break;
+      case "recent":
+        // Ordenar por fecha (más recientes primero)
+        orderBy = "ORDER BY p.fecha_creacion DESC";
+        break;
+      case "controversial":
+        // Ordenar por total de votos, priorizando posts con más actividad
+        orderBy =
+          "ORDER BY total_votos DESC, score DESC, p.fecha_creacion DESC";
+        break;
+      case "oldest":
+        // Ordenar por fecha (más antiguos primero)
+        orderBy = "ORDER BY p.fecha_creacion ASC";
+        break;
+      default:
+        // Por defecto: populares
+        orderBy = "ORDER BY score DESC, p.fecha_creacion DESC";
+    }
+
+    query += ` ${orderBy} LIMIT ${limit} OFFSET ${offset}`;
+
+    console.log(`🔄 Ejecutando query con ordenamiento: ${sortBy}`);
     const [posts] = await pool.execute(query);
 
-    // ✅ OBTENER TOTAL DE POSTS PARA SABER SI HAY MÁS
+    // ✅ OBTENER TOTAL DE POSTS PARA PAGINACIÓN
     const [totalResult] = await pool.execute(
       "SELECT COUNT(*) as total FROM posts WHERE activo = TRUE"
     );
@@ -326,9 +361,10 @@ app.get("/api/posts", async (req, res) => {
     const hasMore = offset + posts.length < totalPosts;
 
     console.log(
-      `📋 Devolviendo ${posts.length} posts de ${totalPosts} totales. ¿Hay más?: ${hasMore}`
+      `📋 Devolviendo ${posts.length} posts de ${totalPosts} totales. Ordenamiento: ${sortBy}. ¿Hay más?: ${hasMore}`
     );
 
+    // ✅ AGREGAR INFORMACIÓN DE ORDENAMIENTO A LA RESPUESTA
     res.json({
       posts: posts,
       pagination: {
@@ -336,6 +372,10 @@ app.get("/api/posts", async (req, res) => {
         totalPosts: totalPosts,
         hasMore: hasMore,
         postsPerPage: limit,
+      },
+      sorting: {
+        current: sortBy,
+        available: ["popular", "recent", "controversial", "oldest"],
       },
     });
   } catch (error) {
