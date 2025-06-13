@@ -2,7 +2,7 @@
 
 class ApiClient {
   constructor() {
-    this.baseURL = "http://localhost:3000/api";
+    this.baseURL = "https://piaausa.onrender.com/";
     this.sessionId = localStorage.getItem("sessionId");
     this.pendingRequests = new Map(); // Para manejar requests duplicados
 
