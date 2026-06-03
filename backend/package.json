@@ -16,7 +16,7 @@
     "votaciones",
     "tickets"
   ],
-  "author": "Tu Nombre",
+  "author": "Oscarpeg",
   "license": "MIT",
   "dependencies": {
     "express": "^4.21.2",
